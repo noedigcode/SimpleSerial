@@ -1,0 +1,104 @@
+Changelog
+=========
+
+[1.1.0] - December 2024
+-----------------------
+
+Added
+
+- TCP server, TCP client and UDP support, including a neat new startup screen.
+- Print version info on command-line.
+- Option to display timestamps.
+- Log to file.
+- Option to replace hex and other escape sequences when sending.
+- Option to show sent data in console.
+- Option to display all data in hex.
+
+Changes
+
+- Reduce text printed when opening a serial port to a one-liner.
+- Macros are now defined in a list and support escape sequences.
+- Tools are now a tabbed interface accessed with a single toolbar button.
+- Data displayed as hex is now simply two hex digits with spaces around them.
+- System messages (port connections, etc.) now in gray
+
+Fixes
+
+- Append correct endline option when auto-replying and sending with timer.
+
+
+[1.0.4] - September 2022
+------------------------
+
+Added
+
+- Window always on top option.
+- Shortcut keys for re-open port and open another port.
+
+Changes
+
+- Opening a port does not reset the window title if it has been set by the user.
+- Setting an empty window title resets it to the default (port and app version).
+
+
+[1.0.3] - March 2022
+--------------------
+
+Added
+
+- Settings: save various GUI settings and port settings.
+
+
+[1.0.2] - March 2022
+--------------------
+
+Added
+
+- Icons in GUI
+- About dialog
+
+Fixes
+
+- Do not include CR/LF in the message history.
+
+
+[1.0.1] - January 2022
+----------------------
+
+Added
+
+- Bytes send/receive counters with clear button
+- Set window title option.
+
+Changes
+
+- Add menu bar and move some toolbar items into menus
+- Add app version to serial dialog window title at startup
+- Changed port selection dialog behaviour: cancel doesn't close app and the
+  dialog is now application-modal.
+
+Fixes
+
+- Add a line break when a paragraph (block size) becomes too large, as the
+  plainTextEdit becomes very slow with large paragraph sizes. This fixes the
+  slowdown when a lot of characters are received very fast, e.g. when
+  connecting with the wrong buad rate.
+
+
+[1.0.0] - January 2022
+----------------------
+
+Added
+
+- Send box history list, navigatable with up/down arrows
+- Escape key clears the send box
+
+Changes
+
+- Select all text in send box when sending
+- Set focus to send box on startup
+- When the console has focus, key presses will be redirected to the send box and
+  it will receive focus
+- Window title text changed to "Port (baud) - Simple Serial Version" so one can
+  easily see the port in the taskbar
+

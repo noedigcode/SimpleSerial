@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="abouticon">simpleserial64.png</file>
+        <file alias="clear">icons8-clear-symbol-48.png</file>
+        <file alias="scrollToBottom">icons8-download-48.png</file>
+        <file alias="reconnect">icons8-restart-48.png</file>
+        <file alias="serialport">icons8-rs-232-male-48.png</file>
+        <file alias="send">icons8-forward-48.png</file>
+        <file alias="clearCounters">icons8-circled-0-c-48.png</file>
+        <file alias="info">icons8-info-48.png</file>
+        <file alias="close">icons8-close-48.png</file>
+        <file alias="connect">icons8-connect-48.png</file>
+        <file alias="tools">icons8-tools-48.png</file>
+    </qresource>
+</RCC>
