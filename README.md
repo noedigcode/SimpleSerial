@@ -9,6 +9,9 @@ A simple serial (and TCP and UDP) terminal app
 2017-2024 Gideon van der Kolf, noedigcode@gmail.com
 
 SimpleSerial is a cross-platform GUI terminal app for serial, TCP and UDP ports.
+
+![Screenshot](screenshot.png)
+
 Features include:
 
 - Open serial ports
@@ -22,6 +25,8 @@ Features include:
 - Preset macros for quickly sending different messages
 - Timed messages at a fixed frequency
 - Basic auto-reply functionality based on a received message
+- Tested on Windows and Linux, probably works on other platforms as well where
+  Qt runs
 
 
 Requirements
