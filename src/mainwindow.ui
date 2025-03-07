@@ -56,7 +56,7 @@
            </sizepolicy>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>5</number>
           </property>
           <widget class="QWidget" name="tab_options">
            <attribute name="title">
@@ -865,6 +865,114 @@
             </item>
            </layout>
           </widget>
+          <widget class="QWidget" name="tab_sendFile">
+           <attribute name="title">
+            <string>Send File</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_11">
+            <item>
+             <widget class="QCheckBox" name="checkBox_sendFile_enable">
+              <property name="text">
+               <string>Send file content</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_24">
+              <property name="text">
+               <string>Filename:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_19">
+              <item>
+               <widget class="QLineEdit" name="lineEdit_sendFile_path"/>
+              </item>
+              <item>
+               <widget class="QToolButton" name="toolButton_sendFile_browse">
+                <property name="text">
+                 <string>...</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_sendFile_openFolder">
+                <property name="text">
+                 <string>Open Folder</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_6">
+              <item>
+               <widget class="QLabel" name="label_22">
+                <property name="text">
+                 <string>Frequency:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSpinBox" name="spinBox_sendFile_ms">
+                <property name="minimumSize">
+                 <size>
+                  <width>50</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+                <property name="maximum">
+                 <number>1440000</number>
+                </property>
+                <property name="value">
+                 <number>1000</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_23">
+                <property name="text">
+                 <string>ms</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_19">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_16">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Expanding</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>176</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
         <item row="2" column="0">
@@ -888,7 +996,7 @@
              <string>Send</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../icons/icons.qrc">
               <normaloff>:/send</normaloff>:/send</iconset>
             </property>
            </widget>
@@ -1575,7 +1683,7 @@
   </widget>
   <action name="actionScroll_to_Bottom">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/scrollToBottom</normaloff>:/scrollToBottom</iconset>
    </property>
    <property name="text">
@@ -1584,7 +1692,7 @@
   </action>
   <action name="actionClear">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/clear</normaloff>:/clear</iconset>
    </property>
    <property name="text">
@@ -1593,7 +1701,7 @@
   </action>
   <action name="action_Close_SerialPort">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/close</normaloff>:/close</iconset>
    </property>
    <property name="text">
@@ -1605,7 +1713,7 @@
   </action>
   <action name="action_Re_Open_SerialPort">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/reconnect</normaloff>:/reconnect</iconset>
    </property>
    <property name="text">
@@ -1619,7 +1727,7 @@
   </action>
   <action name="actionAbout">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/info</normaloff>:/info</iconset>
    </property>
    <property name="text">
@@ -1636,7 +1744,7 @@
   </action>
   <action name="action_Open_Serial_Port">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/serialport</normaloff>:/serialport</iconset>
    </property>
    <property name="text">
@@ -1645,7 +1753,7 @@
   </action>
   <action name="action_New_Connection">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/connect</normaloff>:/connect</iconset>
    </property>
    <property name="text">
@@ -1654,7 +1762,7 @@
   </action>
   <action name="action_Stop_TCP_Server">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/close</normaloff>:/close</iconset>
    </property>
    <property name="text">
@@ -1663,7 +1771,7 @@
   </action>
   <action name="action_Restart_TCP_Server">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/reconnect</normaloff>:/reconnect</iconset>
    </property>
    <property name="text">
@@ -1672,7 +1780,7 @@
   </action>
   <action name="action_Disconnect_from_TCP_Server">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/close</normaloff>:/close</iconset>
    </property>
    <property name="text">
@@ -1681,7 +1789,7 @@
   </action>
   <action name="action_Reconnect_to_TCP_Server">
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/reconnect</normaloff>:/reconnect</iconset>
    </property>
    <property name="text">
@@ -1693,7 +1801,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="../icons/icons.qrc">
      <normaloff>:/tools</normaloff>:/tools</iconset>
    </property>
    <property name="text">

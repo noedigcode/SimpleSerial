@@ -37,6 +37,7 @@
 #include <QSerialPort>
 #include <QSerialPortInfo>
 #include <QSettings>
+#include <QSpinBox>
 
 
 namespace Ui {
@@ -182,8 +183,17 @@ private slots:
     void on_pushButton_log_openFolder_clicked();
     void on_pushButton_log_indicator_clicked();
 
+    void on_toolButton_sendFile_browse_clicked();
+
+    void on_pushButton_sendFile_openFolder_clicked();
+
+    void on_checkBox_sendFile_enable_clicked();
+
 private:
-    QBasicTimer timer;
+    QBasicTimer timedMsgTimer;
+    void onTimedMsgTimer();
+    QBasicTimer sendFileTimer;
+    void onSendFileTimer();
     void timerEvent(QTimerEvent *ev);
 
     void closeEvent(QCloseEvent *event);
@@ -197,6 +207,7 @@ private:
     void initActionCheckedSetting(QString settingKey, QAction* action);
     void initCheckableSetting(QString settingKey, QAbstractButton* widget);
     void initLineEditSetting(QString settingKey, QLineEdit* lineEdit);
+    void initSpinBox(QString settingKey, QSpinBox* spinBox);
 
     void printNetworkAddresses();
 
@@ -218,6 +229,8 @@ private:
     const QString settingUdpSendBroadcast = "udpSendBroadcast";
     const QString settingUdpSendIp = "udpSendIp";
     const QString settingUdpSendPort = "udpSendPort";
+    const QString settingSendFilePath = "sendFilePath";
+    const QString settingSendFileFrequencyMs = "sendFileFrequencyMs";
 };
 
 #endif // MAINWINDOW_H

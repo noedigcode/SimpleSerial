@@ -168,8 +168,17 @@ void MainWindow::initCheckableSetting(QString settingKey, QAbstractButton* widge
 void MainWindow::initLineEditSetting(QString settingKey, QLineEdit* lineEdit)
 {
     lineEdit->setText(settings.value(settingKey, lineEdit->text()).toString());
-    connect(lineEdit, &QLineEdit::editingFinished, [=](){
+    connect(lineEdit, &QLineEdit::textChanged, [=](){
         settings.setValue(settingKey, lineEdit->text());
+    });
+}
+
+void MainWindow::initSpinBox(QString settingKey, QSpinBox* spinBox)
+{
+    spinBox->setValue(settings.value(settingKey, spinBox->value()).toInt());
+    connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value)
+    {
+        settings.setValue(settingKey, value);
     });
 }
 
@@ -759,28 +768,19 @@ void MainWindow::on_pushButton_Send_clicked()
 void MainWindow::on_checkBox_TimedMessages_Enable_clicked()
 {
     if (ui->checkBox_TimedMessages_Enable->isChecked()) {
-        timer.start( ui->spinBox_TimedMsgs_ms->value(), this );
+        timedMsgTimer.start( ui->spinBox_TimedMsgs_ms->value(), this );
     } else {
-        if (timer.isActive()) { timer.stop(); }
+        if (timedMsgTimer.isActive()) { timedMsgTimer.stop(); }
     }
 }
 
 /* Called on every timer tick. */
-void MainWindow::timerEvent(QTimerEvent* /*ev*/)
+void MainWindow::timerEvent(QTimerEvent* ev)
 {
-    static int i = 0;
-    QString newline = crlfComboboxText(ui->comboBox_timeMsgs_CRLF->currentIndex());
-
-    if (ui->radioButton_TimedMsgs_sendInt->isChecked()) {
-        QString msg = QString("%1 %2").arg(i).arg(newline);
-        sendData( msg.toLocal8Bit() );
-        i++;
-        if (i>100) {
-            i = 0;
-        }
-    } else {
-        QString msg = ui->lineEdit_TimedMsgs_msg->text() + newline;
-        sendData( msg.toLocal8Bit() );
+    if (ev->timerId() == timedMsgTimer.timerId()) {
+        onTimedMsgTimer();
+    } else if (ev->timerId() == sendFileTimer.timerId()) {
+        onSendFileTimer();
     }
 }
 
@@ -890,6 +890,10 @@ void MainWindow::loadGeneralSettings()
     initCheckableSetting(settingUdpSendBroadcast, ui->checkBox_udp_broadcast);
     initLineEditSetting(settingUdpSendIp, ui->lineEdit_udp_sendIpAddress);
     initLineEditSetting(settingUdpSendPort, ui->lineEdit_udp_sendPort);
+
+    // Send file settings
+    initLineEditSetting(settingSendFilePath, ui->lineEdit_sendFile_path);
+    initSpinBox(settingSendFileFrequencyMs, ui->spinBox_sendFile_ms);
 }
 
 void MainWindow::updateWindowTitle()
@@ -1222,5 +1226,65 @@ void MainWindow::on_pushButton_log_indicator_clicked()
     ui->action_Tools->setChecked(true);
     onToolsVisibilityChanged();
     ui->tabWidget_tools->setCurrentWidget(ui->tab_log);
+}
+
+void MainWindow::on_toolButton_sendFile_browse_clicked()
+{
+    QString path = QFileDialog::getOpenFileName(
+                this,
+                "File to send",
+                ui->lineEdit_log_path->text());
+
+    if (path.isEmpty()) { return; }
+
+    ui->lineEdit_sendFile_path->setText(path);
+}
+
+void MainWindow::on_pushButton_sendFile_openFolder_clicked()
+{
+    QString path = QFileInfo(ui->lineEdit_sendFile_path->text()).path();
+    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+}
+
+void MainWindow::on_checkBox_sendFile_enable_clicked()
+{
+    if (ui->checkBox_sendFile_enable->isChecked()) {
+        sendFileTimer.start(ui->spinBox_sendFile_ms->value(), this);
+    } else {
+        if (sendFileTimer.isActive()) { sendFileTimer.stop(); }
+    }
+}
+
+void MainWindow::onTimedMsgTimer()
+{
+    static int i = 0;
+    QString newline = crlfComboboxText(ui->comboBox_timeMsgs_CRLF->currentIndex());
+
+    if (ui->radioButton_TimedMsgs_sendInt->isChecked()) {
+        QString msg = QString("%1 %2").arg(i).arg(newline);
+        sendData( msg.toLocal8Bit() );
+        i++;
+        if (i>100) {
+            i = 0;
+        }
+    } else {
+        QString msg = ui->lineEdit_TimedMsgs_msg->text() + newline;
+        sendData( msg.toLocal8Bit() );
+    }
+}
+
+void MainWindow::onSendFileTimer()
+{
+    QString path = ui->lineEdit_sendFile_path->text();
+    if (path.isEmpty()) { return; }
+
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly)) {
+        return;
+    }
+    QByteArray data = f.readAll();
+    f.close();
+
+    sendData(data);
 }
 
