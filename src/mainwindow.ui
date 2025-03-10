@@ -66,7 +66,7 @@
             <item>
              <widget class="QTabWidget" name="tabWidget_options">
               <property name="currentIndex">
-               <number>1</number>
+               <number>0</number>
               </property>
               <widget class="QWidget" name="tab_displayMode">
                <attribute name="title">
@@ -956,6 +956,30 @@
              </layout>
             </item>
             <item>
+             <widget class="QCheckBox" name="checkBox_sendFile_excludeEndingNewline">
+              <property name="text">
+               <string>Exclude last newline if file ends with one</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_20">
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QCheckBox" name="checkBox_sendFile_sendMsgIfEmpty">
+                <property name="text">
+                 <string>Send message if file is empty or does not exist:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="lineEdit_sendFile_msgIfEmpty"/>
+              </item>
+             </layout>
+            </item>
+            <item>
              <spacer name="verticalSpacer_16">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
@@ -1642,7 +1666,7 @@
      <x>0</x>
      <y>0</y>
      <width>681</width>
-     <height>20</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">

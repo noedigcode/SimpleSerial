@@ -91,7 +91,7 @@ private:
 
 private slots:
     void onDataReceived(QByteArray data);
-    void sendData(QByteArray data);
+    void sendData(QByteArray data, bool allowEscapeSequenceReplace = true);
 
     // Serial
 private:
@@ -231,6 +231,9 @@ private:
     const QString settingUdpSendPort = "udpSendPort";
     const QString settingSendFilePath = "sendFilePath";
     const QString settingSendFileFrequencyMs = "sendFileFrequencyMs";
+    const QString settingSendFileExcludeEndingNewline = "sendFileExcludeEndingNewline";
+    const QString settingSendFileSendMsgIfFileEmpty = "sendFileSendMsgIfFileEmpty";
+    const QString settingSendFileMsgIfEmpty = "sendFileMsgIfEmpty";
 };
 
 #endif // MAINWINDOW_H
