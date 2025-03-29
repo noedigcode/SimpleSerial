@@ -440,70 +440,72 @@ void MainWindow::onDataReceived(QByteArray data)
     flushLog();
 }
 
-void MainWindow::sendData(QByteArray data)
+void MainWindow::sendData(QByteArray data, bool allowEscapeSequenceReplace)
 {
-    if (ui->checkBox_sending_replaceEscapeSequences->isChecked()) {
-        // Hex
-        static QByteArray hex("0123456789abcdef");
-        QByteArray tosend;
-        QByteArray lowerData = data.toLower();
-        QByteArray buffer; // Collect bytes to be converted to hex
-        int state = 0;
-        for (int i = 0; i < data.count(); i++) {
-            char c = data.at(i);
-            char clower = lowerData.at(i);
-            bool addChar = false; // Add current char to send data
-            bool addBuffer = false; // Add collected bytes to send data
+    if (allowEscapeSequenceReplace) {
+        if (ui->checkBox_sending_replaceEscapeSequences->isChecked()) {
+            // Hex
+            static QByteArray hex("0123456789abcdef");
+            QByteArray tosend;
+            QByteArray lowerData = data.toLower();
+            QByteArray buffer; // Collect bytes to be converted to hex
+            int state = 0;
+            for (int i = 0; i < data.count(); i++) {
+                char c = data.at(i);
+                char clower = lowerData.at(i);
+                bool addChar = false; // Add current char to send data
+                bool addBuffer = false; // Add collected bytes to send data
 
-            if (state == 0) {
-                // Wait for start of escape sequence.
-                buffer.clear();
-                if (c == '\\') {
-                    // Start of escape sequence
-                    state = 1;
-                } else {
-                    // Not start of escape sequence. Send char.
-                    addChar = true;
-                }
-            } else if (state == 1) {
-                if (hex.contains(clower)) {
-                    // Hex character. Collect in buffer.
-                    buffer.append(c);
-                    state = 2;
-                } else {
-                    // Cancel escape sequence. Also send collected buffer chars.
-                    addChar = true;
-                    addBuffer = true;
+                if (state == 0) {
+                    // Wait for start of escape sequence.
+                    buffer.clear();
+                    if (c == '\\') {
+                        // Start of escape sequence
+                        state = 1;
+                    } else {
+                        // Not start of escape sequence. Send char.
+                        addChar = true;
+                    }
+                } else if (state == 1) {
+                    if (hex.contains(clower)) {
+                        // Hex character. Collect in buffer.
+                        buffer.append(c);
+                        state = 2;
+                    } else {
+                        // Cancel escape sequence. Also send collected buffer chars.
+                        addChar = true;
+                        addBuffer = true;
+                        state = 0;
+                    }
+                } else if (state == 2) {
+                    if (hex.contains(clower)) {
+                        // Hex character. Collect in buffer, convert to hex and send.
+                        buffer.append(c);
+                        tosend.append(buffer.toShort(nullptr, 16));
+                    } else {
+                        // Cancel escape sequence. Also send collected buffer chars.
+                        addChar = true;
+                        addBuffer = true;
+                    }
+                    // End of escape sequence. Reset to wait for next.
                     state = 0;
                 }
-            } else if (state == 2) {
-                if (hex.contains(clower)) {
-                    // Hex character. Collect in buffer, convert to hex and send.
-                    buffer.append(c);
-                    tosend.append(buffer.toShort(nullptr, 16));
-                } else {
-                    // Cancel escape sequence. Also send collected buffer chars.
-                    addChar = true;
-                    addBuffer = true;
-                }
-                // End of escape sequence. Reset to wait for next.
-                state = 0;
-            }
 
-            if (addBuffer) {
-                tosend.append("\\");
-                tosend.append(buffer);
+                if (addBuffer) {
+                    tosend.append("\\");
+                    tosend.append(buffer);
+                }
+                if (addChar) { tosend.append(c); }
             }
-            if (addChar) { tosend.append(c); }
+            data = tosend;
+            // Other escape sequences
+            data.replace(QByteArray("\\n"), QByteArray("\n"));
+            data.replace(QByteArray("\\r"), QByteArray("\r"));
+            data.replace(QByteArray("\\t"), QByteArray("\t"));
+            // NB: Do \0 after hex above so it doesn't interfere
+            data.replace(QByteArray("\\0"), QByteArray(1, '\0'));
+            data.replace(QByteArray("\\\\"), QByteArray("\\"));
         }
-        data = tosend;
-        // Other escape sequences
-        data.replace(QByteArray("\\n"), QByteArray("\n"));
-        data.replace(QByteArray("\\r"), QByteArray("\r"));
-        data.replace(QByteArray("\\t"), QByteArray("\t"));
-        // NB: Do \0 after hex above so it doesn't interfere
-        data.replace(QByteArray("\\0"), QByteArray(1, '\0'));
-        data.replace(QByteArray("\\\\"), QByteArray("\\"));
     }
 
     switch (mCommsMode) {
@@ -906,6 +908,9 @@ void MainWindow::loadGeneralSettings()
     // Send file settings
     initLineEditSetting(settingSendFilePath, ui->lineEdit_sendFile_path);
     initSpinBox(settingSendFileFrequencyMs, ui->spinBox_sendFile_ms);
+    initCheckableSetting(settingSendFileExcludeEndingNewline, ui->checkBox_sendFile_excludeEndingNewline);
+    initCheckableSetting(settingSendFileSendMsgIfFileEmpty, ui->checkBox_sendFile_sendMsgIfEmpty);
+    initLineEditSetting(settingSendFileMsgIfEmpty, ui->lineEdit_sendFile_msgIfEmpty);
 }
 
 void MainWindow::updateWindowTitle()
@@ -1291,12 +1296,38 @@ void MainWindow::onSendFileTimer()
     if (path.isEmpty()) { return; }
 
     QFile f(path);
-    if (!f.open(QIODevice::ReadOnly)) {
-        return;
+    QByteArray data;
+    if (f.open(QIODevice::ReadOnly)) {
+        data = f.readAll();
+        f.close();
     }
-    QByteArray data = f.readAll();
-    f.close();
+    // Data will be empty if file could not be opened
 
-    sendData(data);
+    // Remove ending LF or CRLF if setting set
+    if (ui->checkBox_sendFile_excludeEndingNewline->isChecked()) {
+        if (data.endsWith('\n')) {
+            data.remove(data.length() - 1, 1);
+            if (data.endsWith('\r')) {
+                data.remove(data.length() - 1, 1);
+            }
+        }
+    }
+
+
+    if (!data.isEmpty()) {
+        // If data not empty, send as-is with no escape sequence replacement to
+        // respect file content.
+        sendData(data, false);
+    } else {
+        // If data empty (either file empty or could not be loaded), send
+        // preset message if setting set
+        if (ui->checkBox_sendFile_sendMsgIfEmpty->isChecked()) {
+            data = ui->lineEdit_sendFile_msgIfEmpty->text().toUtf8();
+            if (!data.isEmpty()) {
+                // Allow escape sequence replacement
+                sendData(data);
+            }
+        }
+    }
 }
 
