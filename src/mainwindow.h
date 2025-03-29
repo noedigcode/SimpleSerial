@@ -49,7 +49,18 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+
+    struct StartupOptions {
+        QString port;
+        bool openSerialPort = false;
+        QSerialPort::Parity parity = QSerialPort::NoParity;
+        QSerialPort::DataBits dataBits = QSerialPort::Data8;
+        QSerialPort::StopBits stopBits = QSerialPort::OneStop;
+        QString sendFilePath;
+        int sendFileFreqMs = 500;
+    };
+
+    explicit MainWindow(StartupOptions options, QWidget *parent = 0);
     ~MainWindow();
 
 private:

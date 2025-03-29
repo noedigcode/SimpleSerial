@@ -29,7 +29,7 @@
 #include <QTime>
 
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     settings(QSettings::NativeFormat, QSettings::UserScope,
@@ -59,6 +59,18 @@ MainWindow::MainWindow(QWidget *parent) :
     updateWindowTitle();
 
     setCommsModeAndUpdateGui(CommsNone);
+
+    // Handle startup options
+    if (options.openSerialPort) {
+        print("Startup option: Open serial port: " + options.port);
+        if (options.port.isEmpty()) {
+            print("Error: no port specified.");
+        }
+    }
+    if (!options.sendFilePath.isEmpty()) {
+        print("Startup option: send file: " + options.sendFilePath);
+        print(QString("Frequency: %1 ms").arg(options.sendFileFreqMs));
+    }
 }
 
 MainWindow::~MainWindow()
