@@ -43,10 +43,17 @@ public:
 
     void refreshSerialPortList();
     QSerialPort s;
+    void open();
     void reOpen();
 
     QMap<QString, QString> getSettings();
     void setSettings(QMap<QString, QString> settings);
+
+    void setPort(QString port);
+    void setBaudrate(int baudrate);
+    void setParity(QSerialPort::Parity parity);
+    void setDataBits(QSerialPort::DataBits dataBits);
+    void setStopBits(QSerialPort::StopBits stopBits);
 
 signals:
     void print(QString msg);

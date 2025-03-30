@@ -60,13 +60,10 @@ int main(int argc, char *argv[])
     QCommandLineOption versionOption({"v", "version"}, "Display version information");
     parser.addOption(versionOption);
 
-    QCommandLineOption serialPortOption({"s", "serial"}, "Open serial port");
+    QCommandLineOption serialPortOption({"s", "serial"}, "Serial port to open", "serial");
     parser.addOption(serialPortOption);
 
-    QCommandLineOption portOption({"p", "port"}, "Port (serial, TCP or UDP) to open", "port");
-    parser.addOption(portOption);
-
-    QCommandLineOption baudOption({"b", "baud"}, "Serial buad rate", "baud");
+    QCommandLineOption baudOption({"b", "baud"}, "Serial buad rate in bps. Default: 9600", "baud");
     parser.addOption(baudOption);
 
     QMap<QString, QSerialPort::Parity> parities = {
@@ -128,7 +125,6 @@ int main(int argc, char *argv[])
     }
 
     MainWindow::StartupOptions mwOptions;
-    mwOptions.port = parser.value(portOption.valueName());
 
     mwOptions.sendFilePath = parser.value(sendFileOption.valueName());
     QString sendFileFreqOptionValue = parser.value(sendFileFreqOption.valueName());
@@ -145,7 +141,20 @@ int main(int argc, char *argv[])
     // -------------------------------------------------------------------------
     // Process serial port command line options
 
-    mwOptions.openSerialPort = parser.isSet(serialPortOption);
+    QString serialPortOptionValue = parser.value(serialPortOption.valueName());
+    if (!serialPortOptionValue.isEmpty()) {
+        mwOptions.serialPort = serialPortOptionValue;
+    } else {
+        print("Serial port name must be specified for serial option.");
+    }
+
+    QString baudOptionValue = parser.value(baudOption.valueName());
+    int baudRate = baudOptionValue.toInt(&ok);
+    if (ok && (baudRate > 0)) {
+        mwOptions.baud = baudRate;
+    } else {
+        print(QString("Invalid value for baud: " + baudOptionValue + ", expected positive integer."));
+    }
 
     QString parityOptionValue = parser.value(parityOption.valueName());
     if (parities.contains(parityOptionValue)) {

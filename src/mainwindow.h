@@ -51,8 +51,8 @@ class MainWindow : public QMainWindow
 public:
 
     struct StartupOptions {
-        QString port;
-        bool openSerialPort = false;
+        QString serialPort;
+        int baud = 9600;
         QSerialPort::Parity parity = QSerialPort::NoParity;
         QSerialPort::DataBits dataBits = QSerialPort::Data8;
         QSerialPort::StopBits stopBits = QSerialPort::OneStop;
@@ -195,9 +195,7 @@ private slots:
     void on_pushButton_log_indicator_clicked();
 
     void on_toolButton_sendFile_browse_clicked();
-
     void on_pushButton_sendFile_openFolder_clicked();
-
     void on_checkBox_sendFile_enable_clicked();
 
 private:
