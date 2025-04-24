@@ -22,8 +22,8 @@
 #define VERSION_H
 
 #define APP_NAME "SimpleSerial"
-#define APP_VERSION "1.1.0"
-#define APP_YEAR "2024"
+#define APP_VERSION "1.1.1"
+#define APP_YEAR "2025"
 #define APP_YEAR_FROM "2017"
 
 #endif // VERSION_H
