@@ -346,7 +346,8 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
                 lastWasHex = false;
             }
 
-            addTextToConsoleAndLogIfEnabled(QString(c), QColor(Qt::black));
+            QColor sysTextColor = ui->console->palette().color(QPalette::Text);
+            addTextToConsoleAndLogIfEnabled(QString(c), sysTextColor);
         }
         // Newline after showing send data
         if ((dataDir == DataSend)
