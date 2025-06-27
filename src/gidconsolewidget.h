@@ -58,6 +58,18 @@ private:
     void setCursorTextColor(QColor color);
 
     void resizeEvent(QResizeEvent* event);
+
+    // QObject interface
+protected:
+    struct ToPrint {
+        QString txt;
+        QColor color;
+    };
+    QList<ToPrint> toPrint;
+    void procressToPrint(ToPrint tp);
+    void processNext();
+    void process(ToPrint tp);
+
 };
 
 #endif // GIDCONSOLEWIDGET_H

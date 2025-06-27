@@ -22,6 +22,8 @@
 
 #include "Utilities.h"
 
+#include <QElapsedTimer>
+
 
 GidConsoleWidget::GidConsoleWidget(QWidget *parent) :
     QPlainTextEdit(parent),
@@ -42,6 +44,102 @@ GidConsoleWidget::GidConsoleWidget(QWidget *parent) :
 
 void GidConsoleWidget::addText(QString txt, QColor color)
 {
+    //procressToPrint({txt, color}); // TODO 2025-06-27 Add switch to enable/disable this
+    process({txt, color});
+}
+
+bool GidConsoleWidget::isAutoScrollOn()
+{
+    return auto_scroll;
+}
+
+void GidConsoleWidget::autoScroll(bool scroll)
+{
+    auto_scroll = scroll;
+    if (auto_scroll) {
+        scrollToBottom();
+    }
+}
+
+void GidConsoleWidget::scrollToBottom()
+{
+    s->setValue(s->maximum());
+}
+
+bool GidConsoleWidget::lastAddedWasNewline()
+{
+    return lastWasNewline;
+}
+
+int GidConsoleWidget::remainingOnLine()
+{
+    return mRemainingOnLine;
+}
+
+int GidConsoleWidget::currentLineLength()
+{
+    return mLineLength;
+}
+
+void GidConsoleWidget::updateLineWidthInfo()
+{
+    QFontMetricsF fm(this->font());
+    mCharWidth = fm.horizontalAdvance('W');
+    int w = this->viewport()->width() - this->verticalScrollBar()->width();
+    mMaxLineChars = w / mCharWidth;
+    if (mMaxLineChars == 0) { mMaxLineChars = 80; }
+}
+
+void GidConsoleWidget::setCursorTextColor(QColor color)
+{
+    QTextCharFormat f;
+    f.setForeground(QBrush(color));
+    cursor.setCharFormat(f);
+}
+
+void GidConsoleWidget::resizeEvent(QResizeEvent* event)
+{
+    QPlainTextEdit::resizeEvent(event);
+
+    updateLineWidthInfo();
+}
+
+void GidConsoleWidget::procressToPrint(ToPrint tp)
+{
+    bool start = toPrint.isEmpty();
+
+    int size = 512;
+    for (int i = 0; i < tp.txt.count(); i += size) {
+        toPrint.append({tp.txt.mid(i, i+size), tp.color});
+    }
+
+    if (start) {
+        processNext();
+    }
+}
+
+void GidConsoleWidget::processNext()
+{
+    QElapsedTimer timer;
+    timer.start();
+    while (timer.elapsed() < 10) {
+        if (toPrint.isEmpty()) { break; }
+        process(toPrint.takeFirst());
+    }
+
+    if (!toPrint.isEmpty()) {
+        QMetaObject::invokeMethod(this, [=]()
+        {
+            processNext();
+        }, Qt::QueuedConnection);
+    }
+}
+
+void GidConsoleWidget::process(ToPrint tp)
+{
+    QColor color = tp.color;
+    QString txt = tp.txt;
+
     if (color != textColor) {
         setCursorTextColor(color);
         textColor = color;
@@ -105,58 +203,4 @@ void GidConsoleWidget::addText(QString txt, QColor color)
     }
 }
 
-bool GidConsoleWidget::isAutoScrollOn()
-{
-    return auto_scroll;
-}
 
-void GidConsoleWidget::autoScroll(bool scroll)
-{
-    auto_scroll = scroll;
-    if (auto_scroll) {
-        scrollToBottom();
-    }
-}
-
-void GidConsoleWidget::scrollToBottom()
-{
-    s->setValue(s->maximum());
-}
-
-bool GidConsoleWidget::lastAddedWasNewline()
-{
-    return lastWasNewline;
-}
-
-int GidConsoleWidget::remainingOnLine()
-{
-    return mRemainingOnLine;
-}
-
-int GidConsoleWidget::currentLineLength()
-{
-    return mLineLength;
-}
-
-void GidConsoleWidget::updateLineWidthInfo()
-{
-    QFontMetricsF fm(this->font());
-    mCharWidth = fm.horizontalAdvance('W');
-    int w = this->viewport()->width() - this->verticalScrollBar()->width();
-    mMaxLineChars = w / mCharWidth;
-    if (mMaxLineChars == 0) { mMaxLineChars = 80; }
-}
-
-void GidConsoleWidget::setCursorTextColor(QColor color)
-{
-    QTextCharFormat f;
-    f.setForeground(QBrush(color));
-    cursor.setCharFormat(f);
-}
-
-void GidConsoleWidget::resizeEvent(QResizeEvent* event)
-{
-    QPlainTextEdit::resizeEvent(event);
-
-    updateLineWidthInfo();
-}
