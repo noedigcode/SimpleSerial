@@ -37,6 +37,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    ui->spinBox_maxProcessTimeMs->setValue(allowedMs);
+    ui->spinBox_displayBacklogLengthMs->setValue(displayBacklogLengthMs);
+
     showStartupPage();
 
     this->resize(Utilities::scaleWithPrimaryScreenScalingFactor(this->size()));
@@ -398,15 +401,23 @@ void MainWindow::setCommsModeAndUpdateGui(CommsMode mode)
 
 void MainWindow::onDataReceived(QByteArray data)
 {
+    bool start = rxbuffer.isEmpty();
+
+    rxbuffer.append(data);
+
+    if (start) {
+        processNextRxBuffer();
+    }
+
     // Display number of received bytes
     numBytesRx += data.count();
     updateCounterLabels();
 
-    addDataToConsole(data, DataReceive);
     // Log raw data if enabled
     if (ui->radioButton_log_raw->isChecked()) {
         log(data);
     }
+    flushLog();
 
     // Auto-reply
     if (ui->checkBox_AutoReply_Enable->isChecked()) {
@@ -424,8 +435,6 @@ void MainWindow::onDataReceived(QByteArray data)
             }
         }
     }
-
-    flushLog();
 }
 
 void MainWindow::sendData(QByteArray data, bool allowEscapeSequenceReplace)
@@ -567,12 +576,79 @@ void MainWindow::updateCounterLabels()
 {
     ui->label_bytesRx->setText(QString::number(numBytesRx));
     ui->label_bytesTx->setText(QString::number(numBytesTx));
+
+    ui->label_bytesDropped->setText(QString("%1").arg(numBytesDroppedFromDisplay));
 }
 
 void MainWindow::sendMacro(QString text)
 {
     text += crlfComboboxText(ui->comboBox_macros_append->currentIndex());
     sendData(text.toLocal8Bit());
+}
+
+void MainWindow::processNextRxBuffer()
+{
+    int sizeMin = 32;
+
+    QElapsedTimer timer;
+    timer.start();
+    int countBefore = rxbuffer.count();
+    while (timer.elapsed() < allowedMs) {
+        qint64 msBefore = timer.elapsed();
+
+        QByteArray data = rxbuffer.left(rxBufferProcessSize);
+        rxbuffer.remove(0, rxBufferProcessSize);
+
+        addDataToConsole(data, DataReceive);
+
+        qint64 msAfter = timer.elapsed();
+
+        int dt = qMax(qint64(1), msAfter - msBefore);
+        if (dt > 0) {
+            int rate = data.count() / dt;
+            rxBufferProcessSize = rate * allowedMs;
+            if (rxBufferProcessSize < sizeMin) { rxBufferProcessSize = sizeMin; }
+        }
+
+        if ((msAfter + dt) > allowedMs) { break; }
+        if (rxbuffer.isEmpty()) { break; }
+    }
+    lastProcessMs = timer.elapsed();
+
+    // Drop calculation
+    int countAfter = rxbuffer.count();
+    int bufmax = 0;
+    if (countAfter > 0) {
+        int ms = timer.elapsed();
+        if (ms > 0) {
+            float bpms = (countBefore - countAfter) / (float)ms;
+            bufmax = bpms * displayBacklogLengthMs;
+        }
+    }
+
+    if (rxbuffer.count() > bufmax) {
+        int drop = rxbuffer.count() - bufmax;
+        rxbuffer.remove(0, drop);
+        numBytesDroppedFromDisplay += drop;
+        updateCounterLabels();
+    }
+
+    ui->label_displayProcessBufferSize->setText(QString("%1").arg(rxBufferProcessSize));
+    ui->label_lastDisplayProcessTime->setText(QString("%1 ms").arg(lastProcessMs));
+    int percent = 0;
+    if (bufmax) {
+        percent = (float)rxbuffer.count() / (float)bufmax * 100.0;
+    }
+    ui->label_backlogFill->setText(QString("%1 bytes (%2 %)")
+                                   .arg(rxbuffer.count())
+                                   .arg(percent));
+
+    if (!rxbuffer.isEmpty()) {
+        QMetaObject::invokeMethod(this, [=]()
+        {
+            processNextRxBuffer();
+        }, Qt::QueuedConnection);
+    }
 }
 
 void MainWindow::onSerialReadyRead()
@@ -820,6 +896,7 @@ void MainWindow::on_actionAuto_Scroll_changed()
 void MainWindow::on_pushButton_clearCounters_clicked()
 {
     numBytesRx = 0;
+    numBytesDroppedFromDisplay = 0;
     numBytesTx = 0;
     updateCounterLabels();
 }
@@ -1317,5 +1394,20 @@ void MainWindow::onSendFileTimer()
             }
         }
     }
+}
+
+
+void MainWindow::on_spinBox_maxProcessTimeMs_valueChanged(int value)
+{
+    allowedMs = value;
+}
+
+
+
+
+
+void MainWindow::on_spinBox_displayBacklogLengthMs_valueChanged(int value)
+{
+    displayBacklogLengthMs = value;
 }
 

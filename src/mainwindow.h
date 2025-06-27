@@ -81,6 +81,7 @@ private:
     void setCommsModeAndUpdateGui(CommsMode mode);
 
     int numBytesRx = 0;
+    int numBytesDroppedFromDisplay = 0;
     int numBytesTx = 0;
     bool lastWasHex = false;
     void updateCounterLabels();
@@ -88,6 +89,13 @@ private:
     QElapsedTimer lastTimestamp;
 
     void sendMacro(QString text);
+
+    QByteArray rxbuffer; // TODO 2025-06-27 Better naming for this and below
+    int rxBufferProcessSize = 1024;
+    int lastProcessMs = 0;
+    int allowedMs = 25;
+    int displayBacklogLengthMs = 5000;
+    void processNextRxBuffer();
 
 private slots:
     void onDataReceived(QByteArray data);
@@ -188,6 +196,10 @@ private slots:
     void on_pushButton_sendFile_openFolder_clicked();
 
     void on_checkBox_sendFile_enable_clicked();
+
+    void on_spinBox_maxProcessTimeMs_valueChanged(int value);
+
+    void on_spinBox_displayBacklogLengthMs_valueChanged(int value);
 
 private:
     QBasicTimer timedMsgTimer;
