@@ -143,6 +143,11 @@ void GidQt5Serial::refreshSerialPortList()
     }
 }
 
+void GidQt5Serial::open()
+{
+    on_pushButton_OpenPort_clicked();
+}
+
 void GidQt5Serial::reOpen()
 {
     if (s.isOpen()) {
@@ -177,6 +182,32 @@ void GidQt5Serial::setSettings(QMap<QString, QString> settings)
     ui->comboBox_StopBits->setCurrentIndex(settings.value("stopbitsIndex",
                 QString::number(ui->comboBox_StopBits->currentIndex())).toInt());
 
+}
+
+void GidQt5Serial::setPort(QString port)
+{
+    ui->lineEdit_PortName->setText(port);
+}
+
+void GidQt5Serial::setBaudrate(int baudrate)
+{
+    ui->comboBox_BaudRate->setCurrentText(QString::number(baudrate));
+}
+
+void GidQt5Serial::setParity(QSerialPort::Parity parity)
+{
+    ui->comboBox_Parity->setCurrentText(QVariant::fromValue(parity).toString());
+}
+
+void GidQt5Serial::setDataBits(QSerialPort::DataBits dataBits)
+{
+    ui->spinBox_DataBits->setValue((int)dataBits);
+}
+
+void GidQt5Serial::setStopBits(QSerialPort::StopBits stopBits)
+{
+    ui->comboBox_StopBits->setCurrentText(
+                QVariant::fromValue(stopBits).toString());
 }
 
 void GidQt5Serial::on_pushButton_OpenPort_clicked()

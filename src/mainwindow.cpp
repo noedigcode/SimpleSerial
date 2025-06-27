@@ -29,7 +29,7 @@
 #include <QTime>
 
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     settings(QSettings::NativeFormat, QSettings::UserScope,
@@ -62,6 +62,28 @@ MainWindow::MainWindow(QWidget *parent) :
     updateWindowTitle();
 
     setCommsModeAndUpdateGui(CommsNone);
+
+    // Handle startup options
+    if (!options.serialPort.isEmpty()) {
+        print("Startup option: Open serial port: " + options.serialPort);
+        serial.setPort(options.serialPort);
+        serial.setBaudrate(options.baud);
+        serial.setParity(options.parity);
+        serial.setDataBits(options.dataBits);
+        serial.setStopBits(options.stopBits);
+        on_pushButton_startup_openSerialPort_clicked();
+        serial.open();
+    }
+    if (!options.sendFilePath.isEmpty()) {
+        print("Startup option: send file: " + options.sendFilePath);
+        print(QString("Frequency: %1 ms").arg(options.sendFileFreqMs));
+
+        ui->lineEdit_sendFile_path->setText(options.sendFilePath);
+        ui->spinBox_sendFile_ms->setValue(options.sendFileFreqMs);
+        ui->checkBox_sendFile_enable->setChecked(true);
+
+        on_checkBox_sendFile_enable_clicked();
+    }
 }
 
 MainWindow::~MainWindow()

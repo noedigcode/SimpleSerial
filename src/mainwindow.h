@@ -49,7 +49,18 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+
+    struct StartupOptions {
+        QString serialPort;
+        int baud = 9600;
+        QSerialPort::Parity parity = QSerialPort::NoParity;
+        QSerialPort::DataBits dataBits = QSerialPort::Data8;
+        QSerialPort::StopBits stopBits = QSerialPort::OneStop;
+        QString sendFilePath;
+        int sendFileFreqMs = 500;
+    };
+
+    explicit MainWindow(StartupOptions options, QWidget *parent = 0);
     ~MainWindow();
 
 private:
@@ -192,9 +203,7 @@ private slots:
     void on_pushButton_log_indicator_clicked();
 
     void on_toolButton_sendFile_browse_clicked();
-
     void on_pushButton_sendFile_openFolder_clicked();
-
     void on_checkBox_sendFile_enable_clicked();
 
     void on_spinBox_maxProcessTimeMs_valueChanged(int value);
