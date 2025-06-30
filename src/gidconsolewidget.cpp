@@ -137,6 +137,15 @@ void GidConsoleWidget::processNext()
 
 void GidConsoleWidget::process(ToPrint tp)
 {
+    /* Some processing is done to improve the efficiency of QPlainTextEdit,
+     * which is used to display text.
+     *
+     * QPlainTextEdit gets very slow when a block of text gets too large with
+     * no newlines. To mitigate this, a newline is inserted when a line reaches
+     * the widget's edge, i.e. becomes the width of the widget. This is in
+     * effect manual line wrapping.
+     */
+
     QColor color = tp.color;
     QString txt = tp.txt;
 
