@@ -37,17 +37,15 @@ public:
     void autoScroll(bool scroll);
     void scrollToBottom();
 
-    bool lastAddedWasNewline();
+    bool cursorIsOnNewLine();
     int remainingOnLine();
     int currentLineLength();
 
 private:
-    bool init;
-    QScrollBar* s;
-    QTextCursor cursor;
-    bool auto_scroll;
-    QColor textColor {Qt::black};
-    bool lastWasNewline = false;
+    bool mScrollInit = true;
+    QTextCursor mCursor;
+    bool mAutoScroll = true;
+    bool mLastWasNewline = false;
 
     int mMaxLineChars = 80;
     int mLineLength = 0;

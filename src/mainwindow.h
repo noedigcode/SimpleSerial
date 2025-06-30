@@ -83,6 +83,7 @@ private:
     void print(QString msg, QColor c = Qt::black);
     enum DataDirection { DataReceive, DataSend };
     void addDataToConsole(QByteArray data, DataDirection dataDir);
+    bool mLastRxDataAddedToConsoleWasNewline = false;
     void addTextToConsoleAndLogIfEnabled(QString text, QColor color = Qt::black);
 
     // Generic receive/send

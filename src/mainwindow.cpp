@@ -264,7 +264,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
                 // When receiving data, extra timestamp options come into play
                 // Check if timestamp is only allowed after newline
                 if (timestampAfterNewline) {
-                    if (ui->console->lastAddedWasNewline()) {
+                    if (mLastRxDataAddedToConsoleWasNewline) {
                         printTimestamp = true;
                     } else {
                         printTimestamp = false;
@@ -321,7 +321,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
 
         // If showing send data, add a newline before it if set
         if ((dataDir == DataSend)
-            && (!ui->console->lastAddedWasNewline()) // Prevent unnecessary empty lines
+            && (!ui->console->cursorIsOnNewLine()) // Prevent unnecessary empty lines
             && (i == 0))
         {
             if (ui->checkBox_showSentDataOnSeparateLine->isChecked()) {
@@ -331,7 +331,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
 
         if (printTimestamp) {
             QString t;
-            if (!ui->console->lastAddedWasNewline()) {
+            if (!ui->console->cursorIsOnNewLine()) {
                 t += "\n";
             }
             t += QString("%1: ")
@@ -354,8 +354,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
             // Add space before hex value if not at the start of a line
             bool atStartOfLine =    printTimestamp
                                  || addedNewline
-                                 || (ui->console->currentLineLength() == 0)
-                                 || ui->console->lastAddedWasNewline();
+                                 || ui->console->cursorIsOnNewLine();
 
             if (!atStartOfLine) {
                 t += " ";
@@ -384,7 +383,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
         }
         // Newline after showing send data
         if ((dataDir == DataSend)
-            && (!ui->console->lastAddedWasNewline()) // Prevent unnecessary empty lines
+            && (!ui->console->cursorIsOnNewLine()) // Prevent unnecessary empty lines
             && (i == data.length()-1))
         {
             if (ui->checkBox_showSentDataOnSeparateLine->isChecked()) {
@@ -392,6 +391,8 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
                 lastWasHex = false;
             }
         }
+
+        mLastRxDataAddedToConsoleWasNewline = (c == '\n');
     }
 }
 

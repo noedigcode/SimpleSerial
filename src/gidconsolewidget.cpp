@@ -26,13 +26,9 @@
 
 
 GidConsoleWidget::GidConsoleWidget(QWidget *parent) :
-    QPlainTextEdit(parent),
-    init(true),
-    auto_scroll(true)
+    QPlainTextEdit(parent)
 {
-    s = verticalScrollBar();
-    cursor = textCursor();
-    setCursorTextColor(textColor);
+    mCursor = textCursor();
 
     setFont(Utilities::getMonospaceFont());
 
@@ -50,25 +46,25 @@ void GidConsoleWidget::addText(QString txt, QColor color)
 
 bool GidConsoleWidget::isAutoScrollOn()
 {
-    return auto_scroll;
+    return mAutoScroll;
 }
 
 void GidConsoleWidget::autoScroll(bool scroll)
 {
-    auto_scroll = scroll;
-    if (auto_scroll) {
+    mAutoScroll = scroll;
+    if (mAutoScroll) {
         scrollToBottom();
     }
 }
 
 void GidConsoleWidget::scrollToBottom()
 {
-    s->setValue(s->maximum());
+    verticalScrollBar()->setValue(verticalScrollBar()->maximum());
 }
 
-bool GidConsoleWidget::lastAddedWasNewline()
+bool GidConsoleWidget::cursorIsOnNewLine()
 {
-    return lastWasNewline;
+    return (currentLineLength() == 0);
 }
 
 int GidConsoleWidget::remainingOnLine()
@@ -94,7 +90,7 @@ void GidConsoleWidget::setCursorTextColor(QColor color)
 {
     QTextCharFormat f;
     f.setForeground(QBrush(color));
-    cursor.setCharFormat(f);
+    mCursor.setCharFormat(f);
 }
 
 void GidConsoleWidget::resizeEvent(QResizeEvent* event)
@@ -149,22 +145,15 @@ void GidConsoleWidget::process(ToPrint tp)
     QColor color = tp.color;
     QString txt = tp.txt;
 
-    if (color != textColor) {
-        setCursorTextColor(color);
-        textColor = color;
-    }
+    setCursorTextColor(color);
 
-    lastWasNewline = false;
-
-    int val = s->value();
-    int max = s->maximum();
-
+    // Workaround for scrolling when widget is not full of text yet.
     bool scroll;
-    if (init) {
+    if (mScrollInit) {
         scroll = true;
-        if (max > 0) { init = false; }
+        if (verticalScrollBar()->maximum() > 0) { mScrollInit = false; }
     } else {
-        scroll = (val == max);
+        scroll = (verticalScrollBar()->value() == verticalScrollBar()->maximum());
     }
 
 
@@ -177,7 +166,6 @@ void GidConsoleWidget::process(ToPrint tp)
         for (; readIndex < txt.length(); readIndex++) {
             if (txt.at(readIndex) == "\n") {
                 mLineLength = 0;
-                lastWasNewline = true;
                 readIndex++;
                 break;
             }
@@ -195,19 +183,16 @@ void GidConsoleWidget::process(ToPrint tp)
         }
 
         int n = readIndex - from;
-        cursor.insertText(txt.mid(from, n));
+        mCursor.insertText(txt.mid(from, n));
         nWritten += n;
         if (addNewline) {
-            cursor.insertText("\n");
-            lastWasNewline = true;
+            mCursor.insertText("\n");
         }
     }
 
-
-    lastWasNewline = txt.endsWith("\n");
     mRemainingOnLine = mMaxLineChars - mLineLength;
 
-    if (scroll && auto_scroll) {
+    if (scroll && mAutoScroll) {
         scrollToBottom();
     }
 }
