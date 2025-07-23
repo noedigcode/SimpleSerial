@@ -22,7 +22,7 @@
 #define MAINWINDOW_H
 
 #include "aboutdialog.h"
-#include "gidqt5serial/gidqt5serial.h"
+#include "gidqt5serial.h"
 #include "gidtcp.h"
 #include "gidudp.h"
 #include "version.h"

@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui serialport network
+QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -23,6 +23,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 include(appicon/appicon.pri)
+include(src/gidqt5serial/gidqt5serial.pri)
 
 INCLUDEPATH += src
 
@@ -33,14 +34,12 @@ SOURCES += \
     src/gidtcp.cpp \
     src/gidudp.cpp \
     src/mainwindow.cpp \
-    src/gidqt5serial/gidqt5serial.cpp \
     src/gidconsolewidget.cpp
 
 HEADERS  += \
     src/mainwindow.h \
     src/Utilities.h \
     src/aboutdialog.h \
-    src/gidqt5serial/gidqt5serial.h \
     src/gidconsolewidget.h \
     src/gidtcp.h \
     src/gidudp.h \
@@ -48,8 +47,7 @@ HEADERS  += \
 
 FORMS    += \
     src/mainwindow.ui \
-    src/aboutdialog.ui \
-    src/gidqt5serial/gidqt5serial.ui
+    src/aboutdialog.ui
 
 DISTFILES += \
     .gitignore \
