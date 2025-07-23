@@ -1,7 +1,7 @@
 GidQt5Serial
 ============
 
-G. van der Kolf, March 2017
+G. van der Kolf, March 2017 - 2025
 
 GidQt5Serial is a QMainWindow class that contains a QSerialPort object and
 provides a dialog for a user to choose, configure and open a serial port. This
@@ -14,10 +14,13 @@ Usage
 
  - QSerialPort was introduced in Qt 5.1, so this won't work with Qt 4.
 
- - Copy the files to your project directory, add them to your .pro file and
-   #include the gidqt5serial.h file where you want to use it.
-
- - Add the serialport dependency to your .pro file: QT += serialport
+ - Copy the gidqt5serial directory to your project directory.
+ 
+ - Include the .pri file in your project .pro file:
+   
+     include(../path/to/gidqt5serial.pri)
+     
+ - #include gidqt5serial.h file in our source code where you want to use it.
 
  - Create an object instance e.g. GidQt5Serial mySerial;
 
@@ -50,7 +53,8 @@ Usage
 
  - Other MainWindow related properties can also be set, such as modality,
    window title, etc., e.g.:
-   mySerial.setWindowTitle("My Qt5 Serial App");
-   mySerial.setWindowModality(Qt::ApplicationModal);
+   
+     mySerial.setWindowTitle("My Qt5 Serial App");
+     mySerial.setWindowModality(Qt::ApplicationModal);
    
    
