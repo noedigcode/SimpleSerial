@@ -1,6 +1,23 @@
 Changelog
 =========
 
+[1.2.0] - September 2025
+------------------------
+
+Added
+
+- Option to send a file's contents periodically.
+- Asynchronous displaying of data in the console so app doesn't block when large
+  amounts of data is received or sent at high rates. Settings and stats are
+  available under the Options/Advanced tab.
+- Command line options for opening a serial port and sending file contents.
+- Add changelog to about dialog.
+
+Changes
+
+- Show CR/LF hex option now changed to show `<CR>` and `<LF>` text instead.
+
+
 [1.1.0] - December 2024
 -----------------------
 

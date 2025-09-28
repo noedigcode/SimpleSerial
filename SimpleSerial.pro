@@ -51,8 +51,8 @@ FORMS    += \
 
 DISTFILES += \
     .gitignore \
-    README.md \
-    changelog.txt
+    README.md
 
 RESOURCES += \
-    icons/icons.qrc
+    icons/icons.qrc \
+    src/text.qrc

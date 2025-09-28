@@ -24,6 +24,8 @@
 #include "Utilities.h"
 #include "version.h"
 
+#include <QFile>
+
 
 AboutDialog::AboutDialog(QString settingsText, QWidget *parent) :
     QDialog(parent),
@@ -38,14 +40,23 @@ AboutDialog::AboutDialog(QString settingsText, QWidget *parent) :
 
     setWindowTitle(QString("About %1").arg(APP_NAME));
 
-    // Add version text
-    QString html = ui->textBrowser->toHtml();
-    html.replace("%APP_NAME%", APP_NAME);
-    html.replace("%VERSION%", APP_VERSION);
-    html.replace("%YEAR_FROM%", APP_YEAR_FROM);
-    html.replace("%YEAR%", APP_YEAR);
-    html.replace("%SETTINGS_PATH%", settingsText);
-    ui->textBrowser->setHtml(html);
+    QString text = ui->label_appname->text();
+    text.replace("%APP_NAME%", APP_NAME);
+    ui->label_appname->setText(text);
+
+    text = ui->label_appInfo->text();
+    text.replace("%VERSION%", APP_VERSION);
+    text.replace("%YEAR_FROM%", APP_YEAR_FROM);
+    text.replace("%YEAR%", APP_YEAR);
+    text.replace("%SETTINGS_PATH%", settingsText);
+    ui->label_appInfo->setText(text);
+
+    QString changelog = "Could not load changelog";
+    QFile f("://changelog");
+    if (f.open(QIODevice::ReadOnly)) {
+        changelog = f.readAll();
+    }
+    ui->textBrowser->setMarkdown(changelog);
 }
 
 AboutDialog::~AboutDialog()
