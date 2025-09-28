@@ -37,8 +37,8 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->spinBox_maxProcessTimeMs->setValue(allowedMs);
-    ui->spinBox_displayBacklogLengthMs->setValue(displayBacklogLengthMs);
+    ui->spinBox_maxProcessTimeMs->setValue(dataDisplay.allowedMs);
+    ui->spinBox_displayBacklogLengthMs->setValue(dataDisplay.displayBacklogLengthMs);
 
     showStartupPage();
 
@@ -439,13 +439,7 @@ void MainWindow::setCommsModeAndUpdateGui(CommsMode mode)
 
 void MainWindow::onDataReceived(QByteArray data)
 {
-    bool start = rxbuffer.isEmpty();
-
-    rxbuffer.append(data);
-
-    if (start) {
-        processNextRxBuffer();
-    }
+    dataDisplay.processData(data, DataReceive);
 
     // Display number of received bytes
     numBytesRx += data.count();
@@ -565,7 +559,7 @@ void MainWindow::sendData(QByteArray data, bool allowEscapeSequenceReplace)
     updateCounterLabels();
 
     if (ui->checkBox_showSentDataInConsole->isChecked()) {
-        addDataToConsole(data, DataSend);
+        dataDisplay.processData(data, DataSend);
     }
 
     flushLog();
@@ -622,71 +616,6 @@ void MainWindow::sendMacro(QString text)
 {
     text += crlfComboboxText(ui->comboBox_macros_append->currentIndex());
     sendData(text.toLocal8Bit());
-}
-
-void MainWindow::processNextRxBuffer()
-{
-    int sizeMin = 32;
-
-    QElapsedTimer timer;
-    timer.start();
-    int countBefore = rxbuffer.count();
-    while (timer.elapsed() < allowedMs) {
-        qint64 msBefore = timer.elapsed();
-
-        QByteArray data = rxbuffer.left(rxBufferProcessSize);
-        rxbuffer.remove(0, rxBufferProcessSize);
-
-        addDataToConsole(data, DataReceive);
-
-        qint64 msAfter = timer.elapsed();
-
-        int dt = qMax(qint64(1), msAfter - msBefore);
-        if (dt > 0) {
-            int rate = data.count() / dt;
-            rxBufferProcessSize = rate * allowedMs;
-            if (rxBufferProcessSize < sizeMin) { rxBufferProcessSize = sizeMin; }
-        }
-
-        if ((msAfter + dt) > allowedMs) { break; }
-        if (rxbuffer.isEmpty()) { break; }
-    }
-    lastProcessMs = timer.elapsed();
-
-    // Drop calculation
-    int countAfter = rxbuffer.count();
-    int bufmax = 0;
-    if (countAfter > 0) {
-        int ms = timer.elapsed();
-        if (ms > 0) {
-            float bpms = (countBefore - countAfter) / (float)ms;
-            bufmax = bpms * displayBacklogLengthMs;
-        }
-    }
-
-    if (rxbuffer.count() > bufmax) {
-        int drop = rxbuffer.count() - bufmax;
-        rxbuffer.remove(0, drop);
-        numBytesDroppedFromDisplay += drop;
-        updateCounterLabels();
-    }
-
-    ui->label_displayProcessBufferSize->setText(QString("%1").arg(rxBufferProcessSize));
-    ui->label_lastDisplayProcessTime->setText(QString("%1 ms").arg(lastProcessMs));
-    int percent = 0;
-    if (bufmax) {
-        percent = (float)rxbuffer.count() / (float)bufmax * 100.0;
-    }
-    ui->label_backlogFill->setText(QString("%1 bytes (%2 %)")
-                                   .arg(rxbuffer.count())
-                                   .arg(percent));
-
-    if (!rxbuffer.isEmpty()) {
-        QMetaObject::invokeMethod(this, [=]()
-        {
-            processNextRxBuffer();
-        }, Qt::QueuedConnection);
-    }
 }
 
 void MainWindow::onSerialReadyRead()
@@ -1434,18 +1363,120 @@ void MainWindow::onSendFileTimer()
     }
 }
 
-
 void MainWindow::on_spinBox_maxProcessTimeMs_valueChanged(int value)
 {
-    allowedMs = value;
+    dataDisplay.allowedMs = value;
 }
-
-
-
-
 
 void MainWindow::on_spinBox_displayBacklogLengthMs_valueChanged(int value)
 {
-    displayBacklogLengthMs = value;
+    dataDisplay.displayBacklogLengthMs = value;
 }
 
+void MainWindow::DataDisplayProcessor::processData(QByteArray data,
+                                                   MainWindow::DataDirection dir)
+{
+    bool start = (rxbuffer.isEmpty() && txbuffer.isEmpty());
+
+    if (dir == MainWindow::DataReceive) {
+        rxbuffer += data;
+    } else {
+        txbuffer += data;
+    }
+
+    if (start) { processNext(); }
+}
+
+void MainWindow::DataDisplayProcessor::processNext()
+{
+    int sizeMin = 32;
+
+    QElapsedTimer timer;
+    timer.start();
+    int countBefore = rxbuffer.count() + txbuffer.count();
+    while (timer.elapsed() < allowedMs) {
+        qint64 msBefore = timer.elapsed();
+
+        // Split number of bytes to be processed between incoming and outgoing.
+        int nrx = bufferProcessSize / 2;
+        int ntx = nrx;
+        if (txbuffer.count() < ntx) {
+            nrx += ntx - txbuffer.count();
+        }
+        if (rxbuffer.count() < nrx) {
+            ntx += nrx - rxbuffer.count();
+        }
+
+        // Process incoming
+        QByteArray data = rxbuffer.left(nrx);
+        rxbuffer.remove(0, nrx);
+        mainWindow->addDataToConsole(data, DataReceive);
+        int dataCount = data.count();
+
+        // Process outgoing
+        data = txbuffer.left(ntx);
+        txbuffer.remove(0, ntx);
+        mainWindow->addDataToConsole(data, DataSend);
+        dataCount += data.count();
+
+        qint64 msAfter = timer.elapsed();
+
+        // Adjust buffer process size (number of bytes processed per cycle) to
+        // keep within allowed time slot
+        int dt = qMax(qint64(1), msAfter - msBefore);
+        if (dt > 0) {
+            int rate = dataCount / dt;
+            bufferProcessSize = rate * allowedMs;
+            if (bufferProcessSize < sizeMin) { bufferProcessSize = sizeMin; }
+        }
+
+        if ((msAfter + dt) > allowedMs) { break; }
+        if (rxbuffer.isEmpty() && txbuffer.isEmpty()) { break; }
+    }
+    lastProcessMs = timer.elapsed();
+
+    // Drop calculation
+    int countAfter = rxbuffer.count() + txbuffer.count();
+    int bufmax = 0;
+    if (countAfter > 0) {
+        int ms = timer.elapsed();
+        if (ms > 0) {
+            float bpms = (countBefore - countAfter) / (float)ms;
+            bufmax = bpms * displayBacklogLengthMs;
+        }
+    }
+
+    if (countAfter > bufmax) {
+        int drop = countAfter - bufmax;
+        // First drop from send display buffer
+        int dropTx = qMin(txbuffer.count(), drop);
+        int dropRx = qMin(rxbuffer.count(), drop - dropTx);
+        txbuffer.remove(0, dropTx);
+        rxbuffer.remove(0, dropRx);
+        mainWindow->numBytesDroppedFromDisplay += drop;
+        mainWindow->updateCounterLabels();
+    }
+
+    // Update GUI information
+    mainWindow->ui->label_displayProcessBufferSize->setText(
+                QString("%1").arg(bufferProcessSize));
+    mainWindow->ui->label_lastDisplayProcessTime->setText(
+                QString("%1 ms").arg(lastProcessMs));
+    int percent = 0;
+    if (bufmax) {
+        percent = (float)(rxbuffer.count() + txbuffer.count())
+                / (float)bufmax * 100.0;
+    }
+    mainWindow->ui->label_backlogFill->setText(
+                QString("%1 bytes (%2 %)")
+                .arg(rxbuffer.count() + txbuffer.count())
+                .arg(percent));
+
+    // Queue next call to this function so rest of GUI has a chance to run.
+    if (!rxbuffer.isEmpty() || !txbuffer.isEmpty()) {
+        QMetaObject::invokeMethod(mainWindow, [=]()
+        {
+            processNext();
+        }, Qt::QueuedConnection);
+    }
+}

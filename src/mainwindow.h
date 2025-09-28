@@ -105,12 +105,30 @@ private:
 
     void sendMacro(QString text);
 
-    QByteArray rxbuffer; // TODO 2025-06-27 Better naming for this and below
-    int rxBufferProcessSize = 1024;
-    int lastProcessMs = 0;
-    int allowedMs = 25;
-    int displayBacklogLengthMs = 5000;
-    void processNextRxBuffer();
+    /* DataDisplayProcessor displays data in the console asynchronously so the
+     * rest of the application doesn't block if large amounts af data is
+     * displayed.
+     * allowedMs specifies the time allowed for blocked processing.
+     * Keeping this low will ensure a responsive GUI.
+     * displayBacklogLengthMs specifies how much data can pile up before data
+     * will be dropped from the buffers.
+     * The number of bytes processed is varied dynamically so allowedMs is not
+     * exceeded. Processing time is shared between outgoing and incoming data,
+     * but when buffers are dropped, outgoing is dropped first.
+     * */
+    struct DataDisplayProcessor {
+        DataDisplayProcessor(MainWindow* mw) : mainWindow(mw) {}
+        void processData(QByteArray data, MainWindow::DataDirection dir);
+        int allowedMs = 25;
+        int displayBacklogLengthMs = 5000;
+    private:
+        MainWindow* mainWindow = nullptr;
+        void processNext();
+        int bufferProcessSize = 1024;
+        int lastProcessMs = 0;
+        QByteArray rxbuffer;
+        QByteArray txbuffer;
+    } dataDisplay {this};
 
 private slots:
     void onDataReceived(QByteArray data);
