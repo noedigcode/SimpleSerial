@@ -287,38 +287,6 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
             }
         }
 
-        if (ui->radioButton_displayMode_hex->isChecked()) {
-            // Hex mode.
-            // Hex mode trumps the rest. All characters are converted to hex.
-            // Newlines are treated as normal hex data.
-            outputHex = true;
-            outputNormal = false;
-        } else {
-            // ASCII text mode.
-            // Take newline and special characters hex into account.
-            if (c == '\n') {
-                outputNormal = false;
-                if (ui->checkBox_showCrLfHex->isChecked()) {
-                    outputHex = true;
-                }
-                if (ui->checkBox_crLfNewline->isChecked()) {
-                    // Outputting a newline is allowed
-                    outputNormal = true;
-                }
-            } else if (c == '\r') {
-                outputNormal = false;
-                if (ui->checkBox_showCrLfHex->isChecked()) {
-                    outputHex = true;
-                }
-            } else if ( ((c < 32) || (c == 127)) && (c != '\t')) {
-                // Special character hex
-                if (ui->checkBox_showHexForSpecialChars->isChecked()) {
-                    outputHex = true;
-                    outputNormal = false;
-                }
-            }
-        }
-
         // If showing send data, add a newline before it if set
         if ((dataDir == DataSend)
             && (!ui->console->cursorIsOnNewLine()) // Prevent unnecessary empty lines
@@ -341,46 +309,70 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
             timestampShown = true;
         }
 
+        if (ui->radioButton_displayMode_hex->isChecked()) {
+            // Hex mode.
+            // Hex mode trumps the rest. All characters are converted to hex.
+            // Newlines are treated as normal hex data.
+            outputHex = true;
+            outputNormal = false;
+        } else {
+            // ASCII text mode.
+            // Take special characters hex into account
+            bool special = ((c < 32) || (c == 127));
+            bool notCrLfTab = (c != '\t') && (c != '\n') && (c != '\r');
+            if (special && notCrLfTab) {
+                if (ui->checkBox_showHexForSpecialChars->isChecked()) {
+                    // Show special character in hex
+                    outputHex = true;
+                    outputNormal = false;
+                }
+            }
+        }
+
         if (outputHex) {
-            QString t;
-
-            // Do not split the hex value across a line ending
-            bool addedNewline = false;
-            if (ui->console->remainingOnLine() < 4) {
-                t += "\n";
-                addedNewline = true;
-            }
-
-            // Add space before hex value if not at the start of a line
-            bool atStartOfLine =    printTimestamp
-                                 || addedNewline
-                                 || ui->console->cursorIsOnNewLine();
-
-            if (!atStartOfLine) {
-                t += " ";
-            }
-
-            // Print hex value
-            t += QString("%1").arg(c, 2, 16, QChar('0')).toUpper();
-            addTextToConsoleAndLogIfEnabled(t, QColor(Qt::red));
+            QString hex = QString("%1").arg(c, 2, 16, QChar('0')).toUpper();;
+            bool virtuallyAtLineStart =    printTimestamp
+                                        || ui->console->cursorIsOnNewLine();
+            addNonBreakingTextToConsole(hex, QColor(Qt::red),
+                                        virtuallyAtLineStart, true);
             lastWasHex = true;
         }
 
         // Normal text output
         if (outputNormal) {
+
             if (c == '\n') {
-                lastWasHex = false;
+                if (ui->checkBox_showCrLfHex->isChecked()) {
+                    if (lastWasHex) {
+                        addTextToConsoleAndLogIfEnabled(" ");
+                        lastWasHex = false;
+                    }
+                    addNonBreakingTextToConsole("<LF>", QColor(Qt::red));
+                }
+                if (!ui->checkBox_crLfNewline->isChecked()) {
+                    // Prevent outputting newline
+                    outputNormal = false;
+                }
+            } else if (c == '\r') {
+                outputNormal = false;
+                if (ui->checkBox_showCrLfHex->isChecked()) {
+                    if (lastWasHex) {
+                        addTextToConsoleAndLogIfEnabled(" ");
+                        lastWasHex = false;
+                    }
+                    addNonBreakingTextToConsole("<CR>", QColor(Qt::red));
+                }
             }
 
-            // If a hex value was last added to the console, add a space to
-            // separate it from the following text.
-            if (lastWasHex) {
-                addTextToConsoleAndLogIfEnabled(" ");
-                lastWasHex = false;
+            if (outputNormal) {
+                if (lastWasHex) {
+                    addTextToConsoleAndLogIfEnabled(" ");
+                    lastWasHex = false;
+                }
+                addTextToConsoleAndLogIfEnabled(QString(c), QColor(Qt::black));
             }
-
-            addTextToConsoleAndLogIfEnabled(QString(c), QColor(Qt::black));
         }
+
         // Newline after showing send data
         if ((dataDir == DataSend)
             && (!ui->console->cursorIsOnNewLine()) // Prevent unnecessary empty lines
@@ -394,6 +386,29 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
 
         mLastRxDataAddedToConsoleWasNewline = (c == '\n');
     }
+}
+
+void MainWindow::addNonBreakingTextToConsole(QString text, QColor color,
+                                             bool virtuallyAtLineStart,
+                                             bool addSpaceBefore)
+{
+    bool addedNewline = false;
+    int lenToAdd = text.length();
+    if (addSpaceBefore) { lenToAdd += 1; }
+    if (ui->console->remainingOnLine() < lenToAdd) {
+        text.prepend("\n");
+        addedNewline = true;
+    }
+
+    // Add space before if set, but only if we are not at the start of a line
+    if (addSpaceBefore) {
+        bool atStartOfLine = virtuallyAtLineStart || addedNewline;
+        if (!atStartOfLine) {
+            text.prepend(" ");
+        }
+    }
+
+    addTextToConsoleAndLogIfEnabled(text, color);
 }
 
 void MainWindow::addTextToConsoleAndLogIfEnabled(QString text, QColor color)

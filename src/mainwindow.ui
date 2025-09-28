@@ -66,7 +66,7 @@
             <item>
              <widget class="QTabWidget" name="tabWidget_options">
               <property name="currentIndex">
-               <number>3</number>
+               <number>0</number>
               </property>
               <widget class="QWidget" name="tab_displayMode">
                <attribute name="title">
@@ -142,7 +142,7 @@
                    <item row="1" column="0">
                     <widget class="QCheckBox" name="checkBox_showCrLfHex">
                      <property name="text">
-                      <string>Show hex of CR/LF characters</string>
+                      <string>Show CR/LF characters as text</string>
                      </property>
                     </widget>
                    </item>
@@ -1809,7 +1809,7 @@
      <x>0</x>
      <y>0</y>
      <width>681</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
