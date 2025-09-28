@@ -6,7 +6,7 @@ SimpleSerial
 A simple serial (and TCP and UDP) terminal app
 ----------------------------------------------
 
-2017-2024 Gideon van der Kolf, noedigcode@gmail.com
+2017-2025 Gideon van der Kolf, noedigcode@gmail.com
 
 SimpleSerial is a cross-platform GUI terminal app for serial, TCP and UDP ports.
 
