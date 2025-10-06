@@ -427,6 +427,8 @@ void MainWindow::setCommsModeAndUpdateGui(CommsMode mode)
     ui->action_Re_Open_SerialPort->setVisible(serial);
     ui->action_Close_SerialPort->setVisible(serial);
     ui->action_Open_Serial_Port->setVisible(serial);
+    ui->action_Set_DTR->setVisible(serial);
+    ui->action_Set_RTS->setVisible(serial);
 
     bool tcpServer = (mode == CommsTcpServer);
     ui->action_Restart_TCP_Server->setVisible(tcpServer);
@@ -584,6 +586,16 @@ void MainWindow::setupSerial()
             this, &MainWindow::printSerial);
     connect(&serial, &GidQt5Serial::portOpened,
             this, &MainWindow::onSerialPortOpened);
+    connect(&(serial.s), &QSerialPort::dataTerminalReadyChanged,
+            this, [=](bool set)
+    {
+        ui->action_Set_DTR->setChecked(set);
+    });
+    connect(&(serial.s), &QSerialPort::requestToSendChanged,
+            this, [=](bool set)
+    {
+        ui->action_Set_RTS->setChecked(set);
+    });
 
     serial.setWindowModality(Qt::ApplicationModal);
     serial.setWindowTitle(QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
@@ -644,6 +656,9 @@ void MainWindow::onSerialPortOpened()
         settings.setValue(key, serialSettings.value(key));
     }
     settings.endGroup();
+
+    ui->action_Set_DTR->setChecked(serial.s.isDataTerminalReady());
+    ui->action_Set_RTS->setChecked(serial.s.isRequestToSend());
 
     showMainPage();
 }
@@ -1479,4 +1494,14 @@ void MainWindow::DataDisplayProcessor::processNext()
             processNext();
         }, Qt::QueuedConnection);
     }
+}
+
+void MainWindow::on_action_Set_DTR_toggled(bool set)
+{
+    serial.s.setDataTerminalReady(set);
+}
+
+void MainWindow::on_action_Set_RTS_toggled(bool set)
+{
+    serial.s.setRequestToSend(set);
 }

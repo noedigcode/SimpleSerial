@@ -1809,7 +1809,7 @@
      <x>0</x>
      <y>0</y>
      <width>681</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
@@ -1828,6 +1828,8 @@
     <property name="toolTipsVisible">
      <bool>false</bool>
     </property>
+    <addaction name="action_Set_DTR"/>
+    <addaction name="action_Set_RTS"/>
     <addaction name="action_Re_Open_SerialPort"/>
     <addaction name="action_Close_SerialPort"/>
     <addaction name="action_Open_Serial_Port"/>
@@ -1984,6 +1986,22 @@
    </property>
    <property name="text">
     <string>Auto Scroll</string>
+   </property>
+  </action>
+  <action name="action_Set_DTR">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Set DTR</string>
+   </property>
+  </action>
+  <action name="action_Set_RTS">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Set RTS</string>
    </property>
   </action>
  </widget>

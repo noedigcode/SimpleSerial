@@ -232,6 +232,9 @@ private slots:
 
     void on_spinBox_displayBacklogLengthMs_valueChanged(int value);
 
+    void on_action_Set_DTR_toggled(bool set);
+    void on_action_Set_RTS_toggled(bool set);
+
 private:
     QBasicTimer timedMsgTimer;
     void onTimedMsgTimer();
