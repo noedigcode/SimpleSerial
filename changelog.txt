@@ -1,6 +1,18 @@
 Changelog
 =========
 
+[1.2.1] - Unreleased
+--------------------
+
+Added
+
+- Options to set the serial DTR and RTS pins.
+
+Changes
+
+- Ensure system messages appear on a new line.
+
+
 [1.2.0] - September 2025
 ------------------------
 
