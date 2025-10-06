@@ -65,7 +65,7 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
 
     // Handle startup options
     if (!options.serialPort.isEmpty()) {
-        print("Startup option: Open serial port: " + options.serialPort);
+        printOnNewLine("Startup option: Open serial port: " + options.serialPort);
         serial.setPort(options.serialPort);
         serial.setBaudrate(options.baud);
         serial.setParity(options.parity);
@@ -75,8 +75,8 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
         serial.open();
     }
     if (!options.sendFilePath.isEmpty()) {
-        print("Startup option: send file: " + options.sendFilePath);
-        print(QString("Frequency: %1 ms").arg(options.sendFileFreqMs));
+        printOnNewLine("Startup option: send file: " + options.sendFilePath);
+        printOnNewLine(QString("Frequency: %1 ms").arg(options.sendFileFreqMs));
 
         ui->lineEdit_sendFile_path->setText(options.sendFilePath);
         ui->spinBox_sendFile_ms->setValue(options.sendFileFreqMs);
@@ -231,6 +231,14 @@ void MainWindow::printNetworkAddresses()
 void MainWindow::print(QString msg, QColor c)
 {
     ui->console->addText(msg + "\n", c);
+}
+
+void MainWindow::printOnNewLine(QString msg, QColor c)
+{
+    if (!ui->console->cursorIsOnNewLine()) {
+        print("");
+    }
+    print(msg, c);
 }
 
 void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
@@ -706,7 +714,7 @@ void MainWindow::disconnectFromTcpServer()
 
 void MainWindow::printTcp(QString msg)
 {
-    print("[tcp] " + msg, Qt::darkGray);
+    printOnNewLine("[tcp] " + msg, Qt::darkGray);
 }
 
 void MainWindow::onTcpDataReceived(GidTcp::ConPtr /*con*/, QByteArray data)
@@ -752,7 +760,7 @@ void MainWindow::stopUdp()
 
 void MainWindow::printUdp(QString msg)
 {
-    print("[udp] " + msg, Qt::darkGray);
+    printOnNewLine("[udp] " + msg, Qt::darkGray);
 }
 
 void MainWindow::onUdpDataReceived(QByteArray msg, QHostAddress /*address*/,
@@ -805,7 +813,7 @@ QString MainWindow::logFilePathFromDialog(QString prevFilename)
 
 void MainWindow::printSerial(QString msg)
 {
-    print("[serial] " + msg, Qt::darkGray);
+    printOnNewLine("[serial] " + msg, Qt::darkGray);
 }
 
 void MainWindow::on_pushButton_Send_clicked()

@@ -81,6 +81,7 @@ private:
     void updateWindowTitle();
 
     void print(QString msg, QColor c = Qt::black);
+    void printOnNewLine(QString msg, QColor c = Qt::black);
     enum DataDirection { DataReceive, DataSend };
     void addDataToConsole(QByteArray data, DataDirection dataDir);
     void addNonBreakingTextToConsole(QString text, QColor color,
