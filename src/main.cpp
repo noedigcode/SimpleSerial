@@ -144,16 +144,16 @@ int main(int argc, char *argv[])
     QString serialPortOptionValue = parser.value(serialPortOption.valueName());
     if (!serialPortOptionValue.isEmpty()) {
         mwOptions.serialPort = serialPortOptionValue;
-    } else {
-        print("Serial port name must be specified for serial option.");
     }
 
     QString baudOptionValue = parser.value(baudOption.valueName());
     int baudRate = baudOptionValue.toInt(&ok);
-    if (ok && (baudRate > 0)) {
-        mwOptions.baud = baudRate;
-    } else {
-        print(QString("Invalid value for baud: " + baudOptionValue + ", expected positive integer."));
+    if (ok) {
+        if (baudRate > 0) {
+            mwOptions.baud = baudRate;
+        } else {
+            print(QString("Invalid value for baud: " + baudOptionValue + ", expected positive integer."));
+        }
     }
 
     QString parityOptionValue = parser.value(parityOption.valueName());

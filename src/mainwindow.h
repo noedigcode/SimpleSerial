@@ -281,6 +281,9 @@ private:
     const QString settingSendFileExcludeEndingNewline = "sendFileExcludeEndingNewline";
     const QString settingSendFileSendMsgIfFileEmpty = "sendFileSendMsgIfFileEmpty";
     const QString settingSendFileMsgIfEmpty = "sendFileMsgIfEmpty";
+    const QString settingTimestampsEnabled = "timestampsEnabled";
+    const QString settingTimestampsOnlyAfterNewlines = "timestampsOnlyAfterNewlines";
+    const QString settingTimestampGroupTimeMs = "timestampGroupTimeMs";
 };
 
 #endif // MAINWINDOW_H

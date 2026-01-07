@@ -966,6 +966,11 @@ void MainWindow::loadGeneralSettings()
     initCheckableSetting(settingSendFileExcludeEndingNewline, ui->checkBox_sendFile_excludeEndingNewline);
     initCheckableSetting(settingSendFileSendMsgIfFileEmpty, ui->checkBox_sendFile_sendMsgIfEmpty);
     initLineEditSetting(settingSendFileMsgIfEmpty, ui->lineEdit_sendFile_msgIfEmpty);
+
+    // Timestamps
+    initCheckableSetting(settingTimestampsEnabled, ui->checkBox_timestamps_enable);
+    initCheckableSetting(settingTimestampsOnlyAfterNewlines, ui->checkBox_timestamps_after_newline);
+    initSpinBox(settingTimestampGroupTimeMs, ui->spinBox_timestamps_time_ms);
 }
 
 void MainWindow::updateWindowTitle()
