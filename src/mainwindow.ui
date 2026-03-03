@@ -1993,7 +1993,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Set DTR</string>
+    <string>Set DTR (Data Terminal Ready)</string>
    </property>
   </action>
   <action name="action_Set_RTS">
@@ -2001,7 +2001,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Set RTS</string>
+    <string>Set RTS (Ready To Send)</string>
    </property>
   </action>
  </widget>
