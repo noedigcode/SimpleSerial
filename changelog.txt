@@ -1,6 +1,16 @@
 Changelog
 =========
 
+[1.2.2] - May 2026
+------------------
+
+Changes
+
+- Change normal text color in console to system palette text color (and not
+  simply black), so text is visible with a dark theme. Thanks I-AM-ENGINEER
+  on GitHub for pointing this out.
+
+
 [1.2.1] - March 2026
 --------------------
 
