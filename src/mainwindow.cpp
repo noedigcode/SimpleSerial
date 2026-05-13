@@ -65,7 +65,8 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
 
     // Handle startup options
     if (!options.serialPort.isEmpty()) {
-        printOnNewLine("Startup option: Open serial port: " + options.serialPort);
+        printOnNewLine("Startup option: Open serial port: " + options.serialPort,
+                       systemTextColor());
         serial.setPort(options.serialPort);
         serial.setBaudrate(options.baud);
         serial.setParity(options.parity);
@@ -75,8 +76,10 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
         serial.open();
     }
     if (!options.sendFilePath.isEmpty()) {
-        printOnNewLine("Startup option: send file: " + options.sendFilePath);
-        printOnNewLine(QString("Frequency: %1 ms").arg(options.sendFileFreqMs));
+        printOnNewLine("Startup option: send file: " + options.sendFilePath,
+                       systemTextColor());
+        printOnNewLine(QString("Frequency: %1 ms").arg(options.sendFileFreqMs),
+                       systemTextColor());
 
         ui->lineEdit_sendFile_path->setText(options.sendFilePath);
         ui->spinBox_sendFile_ms->setValue(options.sendFileFreqMs);
@@ -228,17 +231,17 @@ void MainWindow::printNetworkAddresses()
     printTcp(text);
 }
 
-void MainWindow::print(QString msg, QColor c)
+void MainWindow::print(QString msg, QColor color)
 {
-    ui->console->addText(msg + "\n", c);
+    ui->console->addText(msg + "\n", color);
 }
 
-void MainWindow::printOnNewLine(QString msg, QColor c)
+void MainWindow::printOnNewLine(QString msg, QColor color)
 {
     if (!ui->console->cursorIsOnNewLine()) {
-        print("");
+        print("", color);
     }
-    print(msg, c);
+    print(msg, color);
 }
 
 void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
@@ -301,7 +304,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
             && (i == 0))
         {
             if (ui->checkBox_showSentDataOnSeparateLine->isChecked()) {
-                addTextToConsoleAndLogIfEnabled("\n");
+                addTextToConsoleAndLogIfEnabled("\n", normalTextColor());
             }
         }
 
@@ -312,7 +315,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
             }
             t += QString("%1: ")
                     .arg(QTime::currentTime().toString("hh:mm:ss:zzz"));
-            addTextToConsoleAndLogIfEnabled(t, Qt::blue);
+            addTextToConsoleAndLogIfEnabled(t, timestampColor());
             lastWasHex = false;
             timestampShown = true;
         }
@@ -341,7 +344,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
             QString hex = QString("%1").arg(c, 2, 16, QChar('0')).toUpper();;
             bool virtuallyAtLineStart =    printTimestamp
                                         || ui->console->cursorIsOnNewLine();
-            addNonBreakingTextToConsole(hex, QColor(Qt::red),
+            addNonBreakingTextToConsole(hex, hexColor(),
                                         virtuallyAtLineStart, true);
             lastWasHex = true;
         }
@@ -352,10 +355,10 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
             if (c == '\n') {
                 if (ui->checkBox_showCrLfHex->isChecked()) {
                     if (lastWasHex) {
-                        addTextToConsoleAndLogIfEnabled(" ");
+                        addTextToConsoleAndLogIfEnabled(" ", normalTextColor());
                         lastWasHex = false;
                     }
-                    addNonBreakingTextToConsole("<LF>", QColor(Qt::red));
+                    addNonBreakingTextToConsole("<LF>", hexColor());
                 }
                 if (!ui->checkBox_crLfNewline->isChecked()) {
                     // Prevent outputting newline
@@ -365,19 +368,19 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
                 outputNormal = false;
                 if (ui->checkBox_showCrLfHex->isChecked()) {
                     if (lastWasHex) {
-                        addTextToConsoleAndLogIfEnabled(" ");
+                        addTextToConsoleAndLogIfEnabled(" ", normalTextColor());
                         lastWasHex = false;
                     }
-                    addNonBreakingTextToConsole("<CR>", QColor(Qt::red));
+                    addNonBreakingTextToConsole("<CR>", hexColor());
                 }
             }
 
             if (outputNormal) {
                 if (lastWasHex) {
-                    addTextToConsoleAndLogIfEnabled(" ");
+                    addTextToConsoleAndLogIfEnabled(" ", normalTextColor());
                     lastWasHex = false;
                 }
-                addTextToConsoleAndLogIfEnabled(QString(c), QColor(Qt::black));
+                addTextToConsoleAndLogIfEnabled(QString(c), normalTextColor());
             }
         }
 
@@ -387,7 +390,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
             && (i == data.length()-1))
         {
             if (ui->checkBox_showSentDataOnSeparateLine->isChecked()) {
-                addTextToConsoleAndLogIfEnabled("\n");
+                addTextToConsoleAndLogIfEnabled("\n", normalTextColor());
                 lastWasHex = false;
             }
         }
@@ -425,6 +428,26 @@ void MainWindow::addTextToConsoleAndLogIfEnabled(QString text, QColor color)
     if (ui->radioButton_log_asDisplayed->isChecked()) {
         log(text.toLocal8Bit());
     }
+}
+
+QColor MainWindow::normalTextColor()
+{
+    return ui->console->palette().color(QPalette::Text);
+}
+
+QColor MainWindow::timestampColor()
+{
+    return Qt::blue;
+}
+
+QColor MainWindow::hexColor()
+{
+    return Qt::red;
+}
+
+QColor MainWindow::systemTextColor()
+{
+    return Qt::darkGray;
 }
 
 void MainWindow::setCommsModeAndUpdateGui(CommsMode mode)
@@ -714,7 +737,7 @@ void MainWindow::disconnectFromTcpServer()
 
 void MainWindow::printTcp(QString msg)
 {
-    printOnNewLine("[tcp] " + msg, Qt::darkGray);
+    printOnNewLine("[tcp] " + msg, systemTextColor());
 }
 
 void MainWindow::onTcpDataReceived(GidTcp::ConPtr /*con*/, QByteArray data)
@@ -760,7 +783,7 @@ void MainWindow::stopUdp()
 
 void MainWindow::printUdp(QString msg)
 {
-    printOnNewLine("[udp] " + msg, Qt::darkGray);
+    printOnNewLine("[udp] " + msg, systemTextColor());
 }
 
 void MainWindow::onUdpDataReceived(QByteArray msg, QHostAddress /*address*/,
@@ -813,7 +836,7 @@ QString MainWindow::logFilePathFromDialog(QString prevFilename)
 
 void MainWindow::printSerial(QString msg)
 {
-    printOnNewLine("[serial] " + msg, Qt::darkGray);
+    printOnNewLine("[serial] " + msg, systemTextColor());
 }
 
 void MainWindow::on_pushButton_Send_clicked()

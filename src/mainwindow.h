@@ -80,15 +80,20 @@ private:
     QString userWindowTitle;
     void updateWindowTitle();
 
-    void print(QString msg, QColor c = Qt::black);
-    void printOnNewLine(QString msg, QColor c = Qt::black);
+    void print(QString msg, QColor color);
+    void printOnNewLine(QString msg, QColor color);
     enum DataDirection { DataReceive, DataSend };
     void addDataToConsole(QByteArray data, DataDirection dataDir);
     void addNonBreakingTextToConsole(QString text, QColor color,
                                      bool virtuallyAtLineStart = false,
                                      bool addSpaceBefore = false);
     bool mLastRxDataAddedToConsoleWasNewline = false;
-    void addTextToConsoleAndLogIfEnabled(QString text, QColor color = Qt::black);
+    void addTextToConsoleAndLogIfEnabled(QString text, QColor color);
+
+    QColor normalTextColor();
+    QColor timestampColor();
+    QColor hexColor();
+    QColor systemTextColor();
 
     // Generic receive/send
     enum CommsMode { CommsNone, CommsSerial, CommsTcpServer, CommsTcpClient,
