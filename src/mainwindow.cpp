@@ -210,6 +210,61 @@ void MainWindow::initSpinBox(QString settingKey, QSpinBox* spinBox)
     });
 }
 
+QList<QMap<QString, QVariant>> MainWindow::getSettingsArray(QString arrayName)
+{
+    QList<QMap<QString, QVariant>> items;
+    int size = settings.beginReadArray(arrayName);
+    for (int i = 0; i < size; i++) {
+        settings.setArrayIndex(i);
+        QStringList keys = settings.childKeys();
+        QMap<QString, QVariant> keyVals;
+        foreach (QString key, keys) {
+            keyVals.insert(key, settings.value(key).toString());
+        }
+        items.append(keyVals);
+    }
+    settings.endArray();
+    return items;
+}
+
+void MainWindow::setSettingsArray(QString arrayName,
+                                  QList<QMap<QString, QVariant> > items)
+{
+    settings.beginWriteArray(arrayName);
+    for (int i = 0; i < items.size(); i++) {
+        settings.setArrayIndex(i);
+        QMap<QString, QVariant> keyVals = items.value(i);
+        foreach (QString key, keyVals.keys()) {
+            settings.setValue(key, keyVals.value(key));
+        }
+    }
+    settings.endArray();
+}
+
+void MainWindow::readMacrosFromSettings()
+{
+    QList<QMap<QString, QVariant>> macros = getSettingsArray(settingMacrosArray);
+
+    ui->listWidget_macros->clear();
+    for (const QMap<QString, QVariant> &keyVals : macros) {
+        ui->listWidget_macros->addItem(keyVals.value(settingMacroValue).toString());
+    }
+}
+
+void MainWindow::saveMacrosToSettings()
+{
+    QList<QMap<QString, QVariant>> macros;
+
+    for (int i = 0; i < ui->listWidget_macros->count(); i++) {
+        QListWidgetItem* item = ui->listWidget_macros->item(i);
+        QMap<QString, QVariant> keyVals;
+        keyVals.insert(settingMacroValue, item->text());
+        macros.append(keyVals);
+    }
+
+    setSettingsArray(settingMacrosArray, macros);
+}
+
 void MainWindow::printNetworkAddresses()
 {
     QString text = "This computer's IP addresses:\n";
@@ -931,7 +986,7 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_comboBox_SendCRLF_currentIndexChanged(int index)
 {
-    settings.setValue("crlf", index);
+    settings.setValue(settingCrLf, index);
 }
 
 void MainWindow::on_actionWindow_Always_On_Top_toggled(bool arg1)
@@ -948,7 +1003,7 @@ void MainWindow::loadGeneralSettings()
 
     // Send CR/LF
     ui->comboBox_SendCRLF->blockSignals(true);
-    ui->comboBox_SendCRLF->setCurrentIndex(settings.value("crlf").toInt());
+    ui->comboBox_SendCRLF->setCurrentIndex(settings.value(settingCrLf).toInt());
     ui->comboBox_SendCRLF->blockSignals(false);
 
     // Display mode
@@ -994,6 +1049,14 @@ void MainWindow::loadGeneralSettings()
     initCheckableSetting(settingTimestampsEnabled, ui->checkBox_timestamps_enable);
     initCheckableSetting(settingTimestampsOnlyAfterNewlines, ui->checkBox_timestamps_after_newline);
     initSpinBox(settingTimestampGroupTimeMs, ui->spinBox_timestamps_time_ms);
+
+    // Macros send CR/LF combo box
+    ui->comboBox_macros_append->blockSignals(true);
+    ui->comboBox_macros_append->setCurrentIndex(settings.value(settingMacrosSendCrlf).toInt());
+    ui->comboBox_macros_append->blockSignals(false);
+
+    // Macros list
+    readMacrosFromSettings();
 }
 
 void MainWindow::updateWindowTitle()
@@ -1277,6 +1340,8 @@ void MainWindow::on_pushButton_macros_add_clicked()
     QString text = QInputDialog::getText(this, "Macro", "Text");
     if (text.isEmpty()) { return; }
     ui->listWidget_macros->addItem(text);
+
+    saveMacrosToSettings();
 }
 
 void MainWindow::on_pushButton_macros_edit_clicked()
@@ -1289,6 +1354,8 @@ void MainWindow::on_pushButton_macros_edit_clicked()
                                          item->text());
     if (text.isEmpty()) { return; }
     item->setText(text);
+
+    saveMacrosToSettings();
 }
 
 void MainWindow::on_pushButton_macros_remove_clicked()
@@ -1297,6 +1364,8 @@ void MainWindow::on_pushButton_macros_remove_clicked()
     if (!item) { return; }
 
     delete item;
+
+    saveMacrosToSettings();
 }
 
 void MainWindow::on_pushButton_macros_addMultiple_clicked()
@@ -1308,6 +1377,8 @@ void MainWindow::on_pushButton_macros_addMultiple_clicked()
         if (line.isEmpty()) { continue; }
         ui->listWidget_macros->addItem(line);
     }
+
+    saveMacrosToSettings();
 }
 
 void MainWindow::on_listWidget_macros_itemDoubleClicked(QListWidgetItem *item)
@@ -1541,3 +1612,9 @@ void MainWindow::on_action_Set_RTS_toggled(bool set)
 {
     serial.s.setRequestToSend(set);
 }
+
+void MainWindow::on_comboBox_macros_append_currentIndexChanged(int index)
+{
+    settings.setValue(settingMacrosSendCrlf, index);
+}
+

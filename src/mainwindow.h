@@ -241,6 +241,8 @@ private slots:
     void on_action_Set_DTR_toggled(bool set);
     void on_action_Set_RTS_toggled(bool set);
 
+    void on_comboBox_macros_append_currentIndexChanged(int index);
+
 private:
     QBasicTimer timedMsgTimer;
     void onTimedMsgTimer();
@@ -260,6 +262,12 @@ private:
     void initCheckableSetting(QString settingKey, QAbstractButton* widget);
     void initLineEditSetting(QString settingKey, QLineEdit* lineEdit);
     void initSpinBox(QString settingKey, QSpinBox* spinBox);
+
+    QList<QMap<QString, QVariant> > getSettingsArray(QString arrayName);
+    void setSettingsArray(QString arrayName, QList<QMap<QString, QVariant>> items);
+
+    void readMacrosFromSettings();
+    void saveMacrosToSettings();
 
     void printNetworkAddresses();
 
@@ -289,6 +297,10 @@ private:
     const QString settingTimestampsEnabled = "timestampsEnabled";
     const QString settingTimestampsOnlyAfterNewlines = "timestampsOnlyAfterNewlines";
     const QString settingTimestampGroupTimeMs = "timestampGroupTimeMs";
+    const QString settingMacrosSendCrlf = "macrosSendCrlf";
+    const QString settingMacrosArray = "macros";
+    const QString settingMacroValue = "macroValue";
+
 };
 
 #endif // MAINWINDOW_H
