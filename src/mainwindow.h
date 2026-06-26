@@ -243,6 +243,8 @@ private slots:
 
     void on_comboBox_macros_append_currentIndexChanged(int index);
 
+    void on_listWidget_macros_currentItemChanged(QListWidgetItem *current, QListWidgetItem *previous);
+
 private:
     QBasicTimer timedMsgTimer;
     void onTimedMsgTimer();
@@ -268,6 +270,7 @@ private:
 
     void readMacrosFromSettings();
     void saveMacrosToSettings();
+    void updateMacroGuiButtonsEnabled();
 
     void printNetworkAddresses();
 

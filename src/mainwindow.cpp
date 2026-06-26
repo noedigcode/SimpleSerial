@@ -40,6 +40,8 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
     ui->spinBox_maxProcessTimeMs->setValue(dataDisplay.allowedMs);
     ui->spinBox_displayBacklogLengthMs->setValue(dataDisplay.displayBacklogLengthMs);
 
+    updateMacroGuiButtonsEnabled();
+
     showStartupPage();
 
     this->resize(Utilities::scaleWithPrimaryScreenScalingFactor(this->size()));
@@ -263,6 +265,17 @@ void MainWindow::saveMacrosToSettings()
     }
 
     setSettingsArray(settingMacrosArray, macros);
+}
+
+void MainWindow::updateMacroGuiButtonsEnabled()
+{
+    // Enable/disable macro buttons based on whether a macro is selected in the list
+
+    bool enable = (ui->listWidget_macros->currentItem() != nullptr);
+
+    ui->pushButton_macros_edit->setEnabled(enable);
+    ui->pushButton_macros_remove->setEnabled(enable);
+    ui->pushButton_macros_send->setEnabled(enable);
 }
 
 void MainWindow::printNetworkAddresses()
@@ -1616,5 +1629,12 @@ void MainWindow::on_action_Set_RTS_toggled(bool set)
 void MainWindow::on_comboBox_macros_append_currentIndexChanged(int index)
 {
     settings.setValue(settingMacrosSendCrlf, index);
+}
+
+
+void MainWindow::on_listWidget_macros_currentItemChanged(QListWidgetItem* /*current*/,
+                                                         QListWidgetItem* /*previous*/)
+{
+    updateMacroGuiButtonsEnabled();
 }
 
