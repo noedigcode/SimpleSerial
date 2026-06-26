@@ -1,6 +1,19 @@
 Changelog
 =========
 
+[1.3.0] - June 2026
+-------------------
+
+Added
+
+- Save macro list and the macro send append setting (CR/LF) to settings so they
+  are retained between application runs.
+
+Changes
+
+- Disable macro edit, remove and send buttons when no macro is selected.
+
+
 [1.2.2] - May 2026
 ------------------
 
