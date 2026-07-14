@@ -1,6 +1,26 @@
 Changelog
 =========
 
+[1.4.0] - July 2026
+-------------------
+
+Added
+
+- Option to insert tab after timestamps. Useful to keep data that contains tabs
+  aligned properly.
+- Save console font size (i.e. zoom) to settings so it is restored between
+  sessions.
+
+Fixes
+
+- Update console line width info when zooming (Ctrl+Mousewheel) so lines wrap
+  properly after a zoom.
+- Remain scrolled to the bottom when the console resizes, if it was scrolled to
+  the bottom. Especially noticeable when opening the Tools/Options.
+- Pressing the numpad Enter (or other numpad buttons) now works when the console
+  has focus.
+
+
 [1.3.0] - June 2026
 -------------------
 
