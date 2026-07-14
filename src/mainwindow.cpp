@@ -381,8 +381,11 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
             if (!ui->console->cursorIsOnNewLine()) {
                 t += "\n";
             }
-            t += QString("%1: ")
-                    .arg(QTime::currentTime().toString("hh:mm:ss:zzz"));
+            QString space = ui->checkBox_timestamps_addTabAfterTimestamp->isChecked() ?
+                        "\t" : " ";
+            t += QString("%1:%2")
+                    .arg(QTime::currentTime().toString("hh:mm:ss:zzz"))
+                    .arg(space);
             addTextToConsoleAndLogIfEnabled(t, timestampColor());
             lastWasHex = false;
             timestampShown = true;
@@ -1062,6 +1065,7 @@ void MainWindow::loadGeneralSettings()
     initCheckableSetting(settingTimestampsEnabled, ui->checkBox_timestamps_enable);
     initCheckableSetting(settingTimestampsOnlyAfterNewlines, ui->checkBox_timestamps_after_newline);
     initSpinBox(settingTimestampGroupTimeMs, ui->spinBox_timestamps_time_ms);
+    initCheckableSetting(settingTimestampAddTabAfter, ui->checkBox_timestamps_addTabAfterTimestamp);;
 
     // Macros send CR/LF combo box
     ui->comboBox_macros_append->blockSignals(true);

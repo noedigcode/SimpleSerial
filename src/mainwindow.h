@@ -300,6 +300,7 @@ private:
     const QString settingTimestampsEnabled = "timestampsEnabled";
     const QString settingTimestampsOnlyAfterNewlines = "timestampsOnlyAfterNewlines";
     const QString settingTimestampGroupTimeMs = "timestampGroupTimeMs";
+    const QString settingTimestampAddTabAfter = "timestampAddTabAfter";
     const QString settingMacrosSendCrlf = "macrosSendCrlf";
     const QString settingMacrosArray = "macros";
     const QString settingMacroValue = "macroValue";

@@ -66,7 +66,7 @@
             <item>
              <widget class="QTabWidget" name="tabWidget_options">
               <property name="currentIndex">
-               <number>0</number>
+               <number>1</number>
               </property>
               <widget class="QWidget" name="tab_displayMode">
                <attribute name="title">
@@ -274,6 +274,23 @@
                     </layout>
                    </item>
                   </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="checkBox_timestamps_addTabAfterTimestamp">
+                  <property name="text">
+                   <string>Insert tab after timestamp</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label_32">
+                  <property name="text">
+                   <string>May improve readability for data that is spaced with tabs.</string>
+                  </property>
+                  <property name="wordWrap">
+                   <bool>false</bool>
+                  </property>
                  </widget>
                 </item>
                 <item>
@@ -1809,7 +1826,7 @@
      <x>0</x>
      <y>0</y>
      <width>681</width>
-     <height>26</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
