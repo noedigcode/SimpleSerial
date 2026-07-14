@@ -143,8 +143,18 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
 
         if (event->type() == QEvent::KeyPress) {
             QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
-            if ( (keyEvent->modifiers() == Qt::NoModifier) ||
-                 (keyEvent->modifiers() == Qt::ShiftModifier) ) {
+
+            // For key presses on the console, pass them on to the send text
+            // box (and switch focus to it), depending on the modifier states.
+            // Shift: pass keys, as user might be typing a capital letter.
+            // Keypad: pass keys, as user is using the numpad.
+            // Other modifiers: do not pass keys, as user may be doing something
+            // like a copy operation.
+            Qt::KeyboardModifiers mods = keyEvent->modifiers();
+            bool nopass = (mods & Qt::ControlModifier) ||
+                    (mods & Qt::AltModifier) ||
+                    (mods & Qt::MetaModifier);
+            if (!nopass) {
                 ui->comboBox_send->setFocus();
                 QApplication::sendEvent(ui->comboBox_send, keyEvent);
             }
