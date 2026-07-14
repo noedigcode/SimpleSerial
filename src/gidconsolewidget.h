@@ -41,6 +41,10 @@ public:
     int remainingOnLine();
     int currentLineLength();
 
+public slots:
+    void zoomIn(int range = 1);
+    void zoomOut(int range = 1);
+
 private:
     bool mScrollInit = true;
     QTextCursor mCursor;
@@ -55,10 +59,6 @@ private:
 
     void setCursorTextColor(QColor color);
 
-    void resizeEvent(QResizeEvent* event);
-
-    // QObject interface
-protected:
     struct ToPrint {
         QString txt;
         QColor color;
@@ -68,6 +68,11 @@ protected:
     void processNext();
     void process(ToPrint tp);
 
+    void onZoomChanged();
+
+protected:
+    void resizeEvent(QResizeEvent* event) override;
+    void wheelEvent(QWheelEvent *e) override;
 };
 
 #endif // GIDCONSOLEWIDGET_H

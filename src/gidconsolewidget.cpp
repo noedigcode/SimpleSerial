@@ -77,6 +77,18 @@ int GidConsoleWidget::currentLineLength()
     return mLineLength;
 }
 
+void GidConsoleWidget::zoomIn(int range)
+{
+    QPlainTextEdit::zoomIn(range);
+    onZoomChanged();
+}
+
+void GidConsoleWidget::zoomOut(int range)
+{
+    QPlainTextEdit::zoomOut(range);
+    onZoomChanged();
+}
+
 void GidConsoleWidget::updateLineWidthInfo()
 {
     QFontMetricsF fm(this->font());
@@ -95,9 +107,27 @@ void GidConsoleWidget::setCursorTextColor(QColor color)
 
 void GidConsoleWidget::resizeEvent(QResizeEvent* event)
 {
+    // Before resizing determine whether we are scrolled to the bottom.
+    bool scroll = (verticalScrollBar()->value() == verticalScrollBar()->maximum());
+
     QPlainTextEdit::resizeEvent(event);
 
     updateLineWidthInfo();
+
+    // If we were scrolled to the bottom before resizing, and auto scroll is on,
+    // restore the scroll position to the bottom.
+    if (mAutoScroll && scroll) {
+        scrollToBottom();
+    }
+}
+
+void GidConsoleWidget::wheelEvent(QWheelEvent *e)
+{
+    QPlainTextEdit::wheelEvent(e);
+    if (e->modifiers() & Qt::ControlModifier) {
+        // Ctrl + mouse wheel = zoom
+        onZoomChanged();
+    }
 }
 
 void GidConsoleWidget::procressToPrint(ToPrint tp)
@@ -195,6 +225,11 @@ void GidConsoleWidget::process(ToPrint tp)
     if (scroll && mAutoScroll) {
         scrollToBottom();
     }
+}
+
+void GidConsoleWidget::onZoomChanged()
+{
+    updateLineWidthInfo();
 }
 
 
