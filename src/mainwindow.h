@@ -188,6 +188,7 @@ private:
     QString logFilePathFromDialog(QString prevFilename);
 
 private slots:
+    void onConsoleZoomChanged();
     // GUI widget slots
     void on_pushButton_Send_clicked();
     void on_checkBox_TimedMessages_Enable_clicked();
@@ -304,6 +305,7 @@ private:
     const QString settingMacrosSendCrlf = "macrosSendCrlf";
     const QString settingMacrosArray = "macros";
     const QString settingMacroValue = "macroValue";
+    const QString settingConsoleFontPointSize = "consoleFontPointSize";
 
 };
 

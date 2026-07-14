@@ -77,6 +77,19 @@ int GidConsoleWidget::currentLineLength()
     return mLineLength;
 }
 
+int GidConsoleWidget::getFontPointSize()
+{
+    return this->font().pointSize();
+}
+
+void GidConsoleWidget::setFontPointSize(int pointSize)
+{
+    QFont font = this->font();
+    font.setPointSize(pointSize);
+    this->setFont(font);
+    updateLineWidthInfo();
+}
+
 void GidConsoleWidget::zoomIn(int range)
 {
     QPlainTextEdit::zoomIn(range);
@@ -230,6 +243,7 @@ void GidConsoleWidget::process(ToPrint tp)
 void GidConsoleWidget::onZoomChanged()
 {
     updateLineWidthInfo();
+    emit zoomChanged();
 }
 
 

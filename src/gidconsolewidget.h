@@ -41,9 +41,15 @@ public:
     int remainingOnLine();
     int currentLineLength();
 
+    int getFontPointSize();
+    void setFontPointSize(int pointSize);
+
 public slots:
     void zoomIn(int range = 1);
     void zoomOut(int range = 1);
+
+signals:
+    void zoomChanged();
 
 private:
     bool mScrollInit = true;

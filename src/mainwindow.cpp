@@ -53,6 +53,8 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
 
     ui->comboBox_send->installEventFilter(this);
     ui->console->installEventFilter(this);
+    connect(ui->console, &GidConsoleWidget::zoomChanged,
+            this, &MainWindow::onConsoleZoomChanged);
 
     // Disable combo box auto-complete
     ui->comboBox_send->setCompleter(0);
@@ -915,6 +917,11 @@ QString MainWindow::logFilePathFromDialog(QString prevFilename)
                                         "Text file (*.txt);;All files (*.*)");
 }
 
+void MainWindow::onConsoleZoomChanged()
+{
+    settings.setValue(settingConsoleFontPointSize, ui->console->getFontPointSize());
+}
+
 void MainWindow::printSerial(QString msg)
 {
     printOnNewLine("[serial] " + msg, systemTextColor());
@@ -1084,6 +1091,12 @@ void MainWindow::loadGeneralSettings()
 
     // Macros list
     readMacrosFromSettings();
+
+    // Console font size (i.e. zoom)
+    if (settings.contains(settingConsoleFontPointSize)) {
+        int pointSize = settings.value(settingConsoleFontPointSize, 9).toInt();
+        ui->console->setFontPointSize(pointSize);
+    }
 }
 
 void MainWindow::updateWindowTitle()
