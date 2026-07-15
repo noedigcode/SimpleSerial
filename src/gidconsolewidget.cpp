@@ -29,11 +29,10 @@ GidConsoleWidget::GidConsoleWidget(QWidget *parent) :
     QPlainTextEdit(parent)
 {
     mCursor = textCursor();
-
-    setFont(Utilities::getMonospaceFont());
-
     // Line wrapping is done manually in addText()
     this->setLineWrapMode(QPlainTextEdit::NoWrap);
+
+    setFont(Utilities::getMonospaceFont());
 
     updateLineWidthInfo();
 }
@@ -77,6 +76,17 @@ int GidConsoleWidget::currentLineLength()
     return mLineLength;
 }
 
+void GidConsoleWidget::setFont(const QFont &font)
+{
+    int oldPointSize = this->font().pointSize();
+    QPlainTextEdit::setFont(font);
+    if (oldPointSize != font.pointSize()) {
+        onFontPointSizeChanged();
+    } else {
+        updateLineWidthInfo();
+    }
+}
+
 int GidConsoleWidget::getFontPointSize()
 {
     return this->font().pointSize();
@@ -86,29 +96,40 @@ void GidConsoleWidget::setFontPointSize(int pointSize)
 {
     QFont font = this->font();
     font.setPointSize(pointSize);
-    this->setFont(font);
+    setFont(font);
+}
+
+void GidConsoleWidget::setTabCharacterWidth(int chars)
+{
+    if (chars < 0) { return; }
+    mCharsPerTab = chars;
     updateLineWidthInfo();
 }
 
 void GidConsoleWidget::zoomIn(int range)
 {
     QPlainTextEdit::zoomIn(range);
-    onZoomChanged();
+    onFontPointSizeChanged();
 }
 
 void GidConsoleWidget::zoomOut(int range)
 {
     QPlainTextEdit::zoomOut(range);
-    onZoomChanged();
+    onFontPointSizeChanged();
 }
 
 void GidConsoleWidget::updateLineWidthInfo()
 {
     QFontMetricsF fm(this->font());
     mCharWidth = fm.horizontalAdvance('W');
+
+    // Characters per line
     int w = this->viewport()->width() - this->verticalScrollBar()->width();
     mMaxLineChars = w / mCharWidth;
     if (mMaxLineChars == 0) { mMaxLineChars = 80; }
+
+    // Update tab stop distance from character width
+    this->setTabStopDistance(mCharWidth * mCharsPerTab);
 }
 
 void GidConsoleWidget::setCursorTextColor(QColor color)
@@ -139,7 +160,7 @@ void GidConsoleWidget::wheelEvent(QWheelEvent *e)
     QPlainTextEdit::wheelEvent(e);
     if (e->modifiers() & Qt::ControlModifier) {
         // Ctrl + mouse wheel = zoom
-        onZoomChanged();
+        onFontPointSizeChanged();
     }
 }
 
@@ -200,38 +221,29 @@ void GidConsoleWidget::process(ToPrint tp)
     }
 
 
-    int nWritten = 0;
-    int readIndex = 0;
-    while (nWritten < txt.length()) {
+    QString towrite;
+    for (int readIndex = 0; readIndex < txt.length(); readIndex++) {
 
-        int from = readIndex;
-        bool addNewline = false;
-        for (; readIndex < txt.length(); readIndex++) {
-            if (txt.at(readIndex) == "\n") {
-                mLineLength = 0;
-                readIndex++;
-                break;
-            }
-            if (txt.at(readIndex) == '\t') {
-                mLineLength += this->tabStopDistance() / mCharWidth + 1;
-            } else {
-                mLineLength += 1;
-            }
-            if (mLineLength >= mMaxLineChars) {
-                mLineLength = 0;
-                addNewline = true;
-                readIndex++;
-                break;
-            }
+        int toadd = 0;
+        QChar c = txt.at(readIndex);
+        if (c == '\n') {
+            toadd = 0;
+            mLineLength = 0;
+        } else if (c == '\t') {
+            toadd = mCharsPerTab - (mLineLength % mCharsPerTab);
+        } else {
+            toadd = 1;
         }
 
-        int n = readIndex - from;
-        mCursor.insertText(txt.mid(from, n));
-        nWritten += n;
-        if (addNewline) {
-            mCursor.insertText("\n");
+        if (mLineLength + toadd > mMaxLineChars) {
+            towrite += '\n';
+            mLineLength = toadd;
+        } else {
+            mLineLength += toadd;
         }
+        towrite += c;
     }
+    mCursor.insertText(towrite);
 
     mRemainingOnLine = mMaxLineChars - mLineLength;
 
@@ -240,10 +252,10 @@ void GidConsoleWidget::process(ToPrint tp)
     }
 }
 
-void GidConsoleWidget::onZoomChanged()
+void GidConsoleWidget::onFontPointSizeChanged()
 {
     updateLineWidthInfo();
-    emit zoomChanged();
+    emit fontPointSizeChanged();
 }
 
 

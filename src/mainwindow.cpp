@@ -53,7 +53,7 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
 
     ui->comboBox_send->installEventFilter(this);
     ui->console->installEventFilter(this);
-    connect(ui->console, &GidConsoleWidget::zoomChanged,
+    connect(ui->console, &GidConsoleWidget::fontPointSizeChanged,
             this, &MainWindow::onConsoleZoomChanged);
 
     // Disable combo box auto-complete
@@ -1047,6 +1047,9 @@ void MainWindow::loadGeneralSettings()
     initCheckableSetting(settingHexSpecial, ui->checkBox_showHexForSpecialChars);
     initCheckableSetting(settingShowCrLfHex, ui->checkBox_showCrLfHex);
     initCheckableSetting(settingNewlineForCrLf, ui->checkBox_crLfNewline);
+    initSpinBox(settingTabWidth, ui->spinBox_tabWidth);
+    ui->console->setTabCharacterWidth(
+                settings.value(settingTabWidth, ui->spinBox_tabWidth->value()).toInt());
 
     // Replace escape sequences setting
     initCheckableSetting(settingReplaceEscapeSequences,
@@ -1146,6 +1149,7 @@ void MainWindow::showStartupPage()
 {
     ui->stackedWidget->setCurrentWidget(ui->page_startup);
     ui->mainToolBar->setVisible(false);
+    ui->pushButton_startup_openSerialPort->setFocus();
 }
 
 void MainWindow::showMainPage()
@@ -1191,16 +1195,22 @@ void MainWindow::on_action_Open_Serial_Port_triggered()
 void MainWindow::on_pushButton_startup_tcpServer_clicked()
 {
     ui->stackedWidget->setCurrentWidget(ui->page_tcpServer);
+    ui->lineEdit_tcpServer_port->setFocus();
+    ui->lineEdit_tcpServer_port->selectAll();
 }
 
 void MainWindow::on_pushButton_startup_tcpClient_clicked()
 {
     ui->stackedWidget->setCurrentWidget(ui->page_tcpClient);
+    ui->lineEdit_tcpClient_ipAddress->setFocus();
+    ui->lineEdit_tcpClient_ipAddress->selectAll();
 }
 
 void MainWindow::on_pushButton_startup_udp_clicked()
 {
     ui->stackedWidget->setCurrentWidget(ui->page_udp);
+    ui->lineEdit_udp_listenPort->setFocus();
+    ui->lineEdit_udp_listenPort->selectAll();
 }
 
 void MainWindow::on_pushButton_tcpServer_start_clicked()
@@ -1658,10 +1668,30 @@ void MainWindow::on_comboBox_macros_append_currentIndexChanged(int index)
     settings.setValue(settingMacrosSendCrlf, index);
 }
 
-
 void MainWindow::on_listWidget_macros_currentItemChanged(QListWidgetItem* /*current*/,
                                                          QListWidgetItem* /*previous*/)
 {
     updateMacroGuiButtonsEnabled();
+}
+
+void MainWindow::on_lineEdit_tcpServer_port_returnPressed()
+{
+    on_pushButton_tcpServer_start_clicked();
+}
+
+void MainWindow::on_lineEdit_tcpClient_ipAddress_returnPressed()
+{
+    ui->lineEdit_tcpClient_port->setFocus();
+    ui->lineEdit_tcpClient_port->selectAll();
+}
+
+void MainWindow::on_lineEdit_tcpClient_port_returnPressed()
+{
+    on_pushButton_tcpClient_connect_clicked();
+}
+
+void MainWindow::on_spinBox_tabWidth_valueChanged(int value)
+{
+    ui->console->setTabCharacterWidth(value);
 }
 

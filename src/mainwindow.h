@@ -236,15 +236,19 @@ private slots:
     void on_checkBox_sendFile_enable_clicked();
 
     void on_spinBox_maxProcessTimeMs_valueChanged(int value);
-
     void on_spinBox_displayBacklogLengthMs_valueChanged(int value);
 
     void on_action_Set_DTR_toggled(bool set);
     void on_action_Set_RTS_toggled(bool set);
 
     void on_comboBox_macros_append_currentIndexChanged(int index);
-
     void on_listWidget_macros_currentItemChanged(QListWidgetItem *current, QListWidgetItem *previous);
+
+    void on_lineEdit_tcpServer_port_returnPressed();
+    void on_lineEdit_tcpClient_ipAddress_returnPressed();
+    void on_lineEdit_tcpClient_port_returnPressed();
+
+    void on_spinBox_tabWidth_valueChanged(int value);
 
 private:
     QBasicTimer timedMsgTimer;
@@ -282,6 +286,7 @@ private:
     const QString settingHexSpecial = "hexSpecial";
     const QString settingShowCrLfHex = "showCrLfHex";
     const QString settingNewlineForCrLf = "newlineForCrLf";
+    const QString settingTabWidth = "tabWidth";
     const QString settingReplaceEscapeSequences = "replaceEscapeSequences";
     const QString settingShowSentData = "showSentData";
     const QString settingSentDataOnSeparateLine = "sentDataOnSeparateLine";

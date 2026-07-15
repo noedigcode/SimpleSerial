@@ -41,15 +41,18 @@ public:
     int remainingOnLine();
     int currentLineLength();
 
+    void setFont(const QFont& font);
     int getFontPointSize();
     void setFontPointSize(int pointSize);
+
+    void setTabCharacterWidth(int chars);
 
 public slots:
     void zoomIn(int range = 1);
     void zoomOut(int range = 1);
 
 signals:
-    void zoomChanged();
+    void fontPointSizeChanged();
 
 private:
     bool mScrollInit = true;
@@ -61,6 +64,7 @@ private:
     int mLineLength = 0;
     int mRemainingOnLine = 0;
     float mCharWidth = 1;
+    int mCharsPerTab = 8;
     void updateLineWidthInfo();
 
     void setCursorTextColor(QColor color);
@@ -74,7 +78,7 @@ private:
     void processNext();
     void process(ToPrint tp);
 
-    void onZoomChanged();
+    void onFontPointSizeChanged();
 
 protected:
     void resizeEvent(QResizeEvent* event) override;

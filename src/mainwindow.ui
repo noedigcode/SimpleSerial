@@ -66,7 +66,7 @@
             <item>
              <widget class="QTabWidget" name="tabWidget_options">
               <property name="currentIndex">
-               <number>1</number>
+               <number>0</number>
               </property>
               <widget class="QWidget" name="tab_displayMode">
                <attribute name="title">
@@ -139,13 +139,6 @@
                    <string>Text Mode Settings</string>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_3">
-                   <item row="1" column="0">
-                    <widget class="QCheckBox" name="checkBox_showCrLfHex">
-                     <property name="text">
-                      <string>Show CR/LF characters as text</string>
-                     </property>
-                    </widget>
-                   </item>
                    <item row="1" column="1">
                     <widget class="QCheckBox" name="checkBox_crLfNewline">
                      <property name="text">
@@ -153,6 +146,13 @@
                      </property>
                      <property name="checked">
                       <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QCheckBox" name="checkBox_showCrLfHex">
+                     <property name="text">
+                      <string>Show CR/LF characters as text</string>
                      </property>
                     </widget>
                    </item>
@@ -165,6 +165,43 @@
                       <bool>true</bool>
                      </property>
                     </widget>
+                   </item>
+                   <item row="2" column="0" colspan="2">
+                    <layout class="QHBoxLayout" name="horizontalLayout_21">
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <item>
+                      <widget class="QLabel" name="label_33">
+                       <property name="text">
+                        <string>Tab width:</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QSpinBox" name="spinBox_tabWidth">
+                       <property name="minimum">
+                        <number>1</number>
+                       </property>
+                       <property name="value">
+                        <number>4</number>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_21">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
                    </item>
                   </layout>
                  </widget>
@@ -2030,6 +2067,80 @@
    <header>gidconsolewidget.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>tabWidget_tools</tabstop>
+  <tabstop>tabWidget_options</tabstop>
+  <tabstop>radioButton_displayMode_text</tabstop>
+  <tabstop>radioButton_displayMode_hex</tabstop>
+  <tabstop>checkBox_showCrLfHex</tabstop>
+  <tabstop>checkBox_crLfNewline</tabstop>
+  <tabstop>checkBox_showHexForSpecialChars</tabstop>
+  <tabstop>checkBox_timestamps_enable</tabstop>
+  <tabstop>checkBox_timestamps_after_newline</tabstop>
+  <tabstop>spinBox_timestamps_time_ms</tabstop>
+  <tabstop>checkBox_timestamps_addTabAfterTimestamp</tabstop>
+  <tabstop>checkBox_showSentDataInConsole</tabstop>
+  <tabstop>checkBox_showSentDataOnSeparateLine</tabstop>
+  <tabstop>checkBox_sending_replaceEscapeSequences</tabstop>
+  <tabstop>spinBox_maxProcessTimeMs</tabstop>
+  <tabstop>spinBox_displayBacklogLengthMs</tabstop>
+  <tabstop>radioButton_log_asDisplayed</tabstop>
+  <tabstop>radioButton_log_raw</tabstop>
+  <tabstop>lineEdit_log_path</tabstop>
+  <tabstop>toolButton_log_browse</tabstop>
+  <tabstop>pushButton_log_openFolder</tabstop>
+  <tabstop>pushButton_log_startStop</tabstop>
+  <tabstop>lineEdit_log_status</tabstop>
+  <tabstop>pushButton_macros_send</tabstop>
+  <tabstop>comboBox_macros_append</tabstop>
+  <tabstop>listWidget_macros</tabstop>
+  <tabstop>pushButton_macros_add</tabstop>
+  <tabstop>pushButton_macros_addMultiple</tabstop>
+  <tabstop>pushButton_macros_edit</tabstop>
+  <tabstop>pushButton_macros_remove</tabstop>
+  <tabstop>checkBox_TimedMessages_Enable</tabstop>
+  <tabstop>spinBox_TimedMsgs_ms</tabstop>
+  <tabstop>radioButton_TimedMsgs_sendThis</tabstop>
+  <tabstop>lineEdit_TimedMsgs_msg</tabstop>
+  <tabstop>radioButton_TimedMsgs_sendInt</tabstop>
+  <tabstop>comboBox_timeMsgs_CRLF</tabstop>
+  <tabstop>checkBox_AutoReply_Enable</tabstop>
+  <tabstop>lineEdit_AutoReply_rx</tabstop>
+  <tabstop>lineEdit_AutoReply_send</tabstop>
+  <tabstop>comboBox_AutoReply_CRLF</tabstop>
+  <tabstop>checkBox_sendFile_enable</tabstop>
+  <tabstop>lineEdit_sendFile_path</tabstop>
+  <tabstop>toolButton_sendFile_browse</tabstop>
+  <tabstop>pushButton_sendFile_openFolder</tabstop>
+  <tabstop>spinBox_sendFile_ms</tabstop>
+  <tabstop>checkBox_sendFile_excludeEndingNewline</tabstop>
+  <tabstop>checkBox_sendFile_sendMsgIfEmpty</tabstop>
+  <tabstop>lineEdit_sendFile_msgIfEmpty</tabstop>
+  <tabstop>comboBox_send</tabstop>
+  <tabstop>pushButton_Send</tabstop>
+  <tabstop>comboBox_SendCRLF</tabstop>
+  <tabstop>console</tabstop>
+  <tabstop>pushButton_clearCounters</tabstop>
+  <tabstop>pushButton_log_indicator</tabstop>
+  <tabstop>pushButton_startup_openSerialPort</tabstop>
+  <tabstop>pushButton_startup_tcpServer</tabstop>
+  <tabstop>pushButton_startup_tcpClient</tabstop>
+  <tabstop>pushButton_startup_udp</tabstop>
+  <tabstop>lineEdit_tcpServer_port</tabstop>
+  <tabstop>pushButton_tcpServer_start</tabstop>
+  <tabstop>pushButton_tcpServer_cancel</tabstop>
+  <tabstop>lineEdit_tcpClient_ipAddress</tabstop>
+  <tabstop>lineEdit_tcpClient_port</tabstop>
+  <tabstop>pushButton_tcpClient_connect</tabstop>
+  <tabstop>pushButton_tcpClient_cancel</tabstop>
+  <tabstop>checkBox_udp_bindForListening</tabstop>
+  <tabstop>lineEdit_udp_listenPort</tabstop>
+  <tabstop>checkBox_udp_broadcast</tabstop>
+  <tabstop>lineEdit_udp_sendIpAddress</tabstop>
+  <tabstop>lineEdit_udp_sendPort</tabstop>
+  <tabstop>pushButton_udp_start</tabstop>
+  <tabstop>pushButton_udp_cancel</tabstop>
+ </tabstops>
  <resources>
   <include location="../icons/icons.qrc"/>
   <include location="../appicon/appicon.qrc"/>
