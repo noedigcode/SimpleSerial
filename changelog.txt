@@ -1,6 +1,27 @@
 Changelog
 =========
 
+[1.5.0] - July 2026
+-------------------
+
+Added
+
+- Option to set the width of tab characters in the console.
+
+Changes
+
+- On new connection screens, focus and select first text box when the screen is
+  shown.
+- On new connection screens, put Cancel button last in tab order.
+- On new TCP connection screens, pressing Enter in the text boxes will advance
+  to the next (if any) and finally start the connection.
+
+Fixes
+
+- Properly calculate tab widths as they are displayed in the console when
+  calculating line wrapping.
+
+
 [1.4.0] - July 2026
 -------------------
 
