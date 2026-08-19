@@ -200,6 +200,7 @@ private slots:
     void on_actionClear_triggered();
     void on_action_Re_Open_SerialPort_triggered();
     void on_action_Close_SerialPort_triggered();
+    void on_action_Close_SerialPort_toolbar_triggered();
     void on_actionAuto_Scroll_changed();
     void on_pushButton_clearCounters_clicked();
     void on_actionSet_Window_Title_triggered();
@@ -242,6 +243,7 @@ private slots:
     void on_spinBox_displayBacklogLengthMs_valueChanged(int value);
 
     void on_action_Set_DTR_toggled(bool set);
+    void on_action_Set_DTR_toolbar_toggled(bool set);
     void on_action_Set_RTS_toggled(bool set);
 
     void on_comboBox_macros_append_currentIndexChanged(int index);

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>681</width>
+    <width>678</width>
     <height>807</height>
    </rect>
   </property>
@@ -1838,8 +1838,14 @@
    <property name="movable">
     <bool>false</bool>
    </property>
+   <property name="iconSize">
+    <size>
+     <width>24</width>
+     <height>24</height>
+    </size>
+   </property>
    <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonTextBesideIcon</enum>
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
    </property>
    <property name="floatable">
     <bool>false</bool>
@@ -1854,6 +1860,8 @@
    <addaction name="actionClear"/>
    <addaction name="action_Tools"/>
    <addaction name="action_Re_Open_SerialPort"/>
+   <addaction name="action_Set_DTR_toolbar"/>
+   <addaction name="action_Close_SerialPort_toolbar"/>
    <addaction name="action_Restart_TCP_Server"/>
    <addaction name="action_Reconnect_to_TCP_Server"/>
   </widget>
@@ -1862,8 +1870,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>681</width>
-     <height>25</height>
+     <width>678</width>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
@@ -1919,7 +1927,7 @@
      <normaloff>:/clear</normaloff>:/clear</iconset>
    </property>
    <property name="text">
-    <string>Clear Console</string>
+    <string>Clear</string>
    </property>
   </action>
   <action name="action_Close_SerialPort">
@@ -2056,6 +2064,30 @@
    </property>
    <property name="text">
     <string>Set RTS (Ready To Send)</string>
+   </property>
+  </action>
+  <action name="action_Set_DTR_toolbar">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../icons/icons.qrc">
+     <normaloff>:/serialport</normaloff>:/serialport</iconset>
+   </property>
+   <property name="text">
+    <string>DTR</string>
+   </property>
+  </action>
+  <action name="action_Close_SerialPort_toolbar">
+   <property name="icon">
+    <iconset resource="../icons/icons.qrc">
+     <normaloff>:/close</normaloff>:/close</iconset>
+   </property>
+   <property name="text">
+    <string>Close Port</string>
+   </property>
+   <property name="toolTip">
+    <string>Close Serial Port</string>
    </property>
   </action>
  </widget>

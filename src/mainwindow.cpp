@@ -550,8 +550,10 @@ void MainWindow::setCommsModeAndUpdateGui(CommsMode mode)
     bool serial = (mode == CommsSerial);
     ui->action_Re_Open_SerialPort->setVisible(serial);
     ui->action_Close_SerialPort->setVisible(serial);
+    ui->action_Close_SerialPort_toolbar->setVisible(serial);
     ui->action_Open_Serial_Port->setVisible(serial);
     ui->action_Set_DTR->setVisible(serial);
+    ui->action_Set_DTR_toolbar->setVisible(serial);
     ui->action_Set_RTS->setVisible(serial);
 
     bool tcpServer = (mode == CommsTcpServer);
@@ -714,6 +716,7 @@ void MainWindow::setupSerial()
             this, [=](bool set)
     {
         ui->action_Set_DTR->setChecked(set);
+        ui->action_Set_DTR_toolbar->setChecked(set);
     });
     connect(&(serial.s), &QSerialPort::requestToSendChanged,
             this, [=](bool set)
@@ -782,6 +785,7 @@ void MainWindow::onSerialPortOpened()
     settings.endGroup();
 
     ui->action_Set_DTR->setChecked(serial.s.isDataTerminalReady());
+    ui->action_Set_DTR_toolbar->setChecked(serial.s.isDataTerminalReady());
     ui->action_Set_RTS->setChecked(serial.s.isRequestToSend());
 
     showMainPage();
@@ -995,6 +999,11 @@ void MainWindow::on_action_Re_Open_SerialPort_triggered()
 }
 
 void MainWindow::on_action_Close_SerialPort_triggered()
+{
+    closeSerialPort();
+}
+
+void MainWindow::on_action_Close_SerialPort_toolbar_triggered()
 {
     closeSerialPort();
 }
@@ -1664,6 +1673,11 @@ void MainWindow::DataDisplayProcessor::processNext()
 }
 
 void MainWindow::on_action_Set_DTR_toggled(bool set)
+{
+    serial.s.setDataTerminalReady(set);
+}
+
+void MainWindow::on_action_Set_DTR_toolbar_toggled(bool set)
 {
     serial.s.setDataTerminalReady(set);
 }
