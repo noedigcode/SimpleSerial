@@ -120,6 +120,11 @@ void GidQt5Serial::openSerialPort()
               .arg(QVariant::fromValue(s.stopBits()).toString())
               .arg(QVariant::fromValue(s.flowControl()).toString()));
 
+        if (ui->checkBox_setDtrAfterOpen->isChecked()) {
+            print("Setting DTR pin");
+            s.setDataTerminalReady(true);
+        }
+
         emit portOpened();
         this->hide();
 
@@ -164,6 +169,7 @@ QMap<QString, QString> GidQt5Serial::getSettings()
     s.insert("parityIndex", QString::number(ui->comboBox_Parity->currentIndex()));
     s.insert("databits", QString::number(ui->spinBox_DataBits->value()));
     s.insert("stopbitsIndex", QString::number(ui->comboBox_StopBits->currentIndex()));
+    s.insert("setDtrAfterOpen", QVariant(ui->checkBox_setDtrAfterOpen->isChecked()).toString());
 
     return s;
 }
@@ -182,6 +188,8 @@ void GidQt5Serial::setSettings(QMap<QString, QString> settings)
     ui->comboBox_StopBits->setCurrentIndex(settings.value("stopbitsIndex",
                 QString::number(ui->comboBox_StopBits->currentIndex())).toInt());
 
+    bool setDtrAfterOpen = QVariant(settings.value("setDtrAfterOpen")).toBool();
+    ui->checkBox_setDtrAfterOpen->setChecked(setDtrAfterOpen);
 }
 
 void GidQt5Serial::setPort(QString port)

@@ -161,6 +161,13 @@
      </layout>
     </item>
     <item>
+     <widget class="QCheckBox" name="checkBox_setDtrAfterOpen">
+      <property name="text">
+       <string>Set DTR (Data Terminal Ready) pin after open</string>
+      </property>
+     </widget>
+    </item>
+    <item>
      <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,0">
       <item>
        <spacer name="horizontalSpacer">
