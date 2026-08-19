@@ -85,15 +85,18 @@ private:
     enum DataDirection { DataReceive, DataSend };
     void addDataToConsole(QByteArray data, DataDirection dataDir);
     void addNonBreakingTextToConsole(QString text, QColor color,
+                                     QBrush background,
                                      bool virtuallyAtLineStart = false,
                                      bool addSpaceBefore = false);
     bool mLastRxDataAddedToConsoleWasNewline = false;
-    void addTextToConsoleAndLogIfEnabled(QString text, QColor color);
+    void addTextToConsoleAndLogIfEnabled(QString text, QColor color,
+                                         QBrush background = QBrush());
 
     QColor normalTextColor();
     QColor timestampColor();
     QColor hexColor();
     QColor systemTextColor();
+    QBrush sendBackground();
 
     // Generic receive/send
     enum CommsMode { CommsNone, CommsSerial, CommsTcpServer, CommsTcpClient,

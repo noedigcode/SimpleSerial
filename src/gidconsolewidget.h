@@ -26,13 +26,14 @@
 #include <QScrollBar>
 #include <QTextCursor>
 
+
 class GidConsoleWidget : public QPlainTextEdit
 {
     Q_OBJECT
 public:
     GidConsoleWidget(QWidget *parent = 0);
 
-    void addText(QString txt, QColor color = Qt::black);
+    void addText(QString txt, QColor color = Qt::black, QBrush background = QBrush());
     bool isAutoScrollOn();
     void autoScroll(bool scroll);
     void scrollToBottom();
@@ -67,11 +68,12 @@ private:
     int mCharsPerTab = 8;
     void updateLineWidthInfo();
 
-    void setCursorTextColor(QColor color);
+    void setCursorTextColor(QColor color, QBrush background = QBrush());
 
     struct ToPrint {
         QString txt;
         QColor color;
+        QBrush backround;
     };
     QList<ToPrint> toPrint;
     void procressToPrint(ToPrint tp);

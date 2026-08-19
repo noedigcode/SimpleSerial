@@ -37,10 +37,10 @@ GidConsoleWidget::GidConsoleWidget(QWidget *parent) :
     updateLineWidthInfo();
 }
 
-void GidConsoleWidget::addText(QString txt, QColor color)
+void GidConsoleWidget::addText(QString txt, QColor color, QBrush background)
 {
-    //procressToPrint({txt, color}); // TODO 2025-06-27 Add switch to enable/disable this
-    process({txt, color});
+    //procressToPrint({txt, color, background}); // TODO 2025-06-27 Add switch to enable/disable this
+    process({txt, color, background});
 }
 
 bool GidConsoleWidget::isAutoScrollOn()
@@ -132,10 +132,11 @@ void GidConsoleWidget::updateLineWidthInfo()
     this->setTabStopDistance(mCharWidth * mCharsPerTab);
 }
 
-void GidConsoleWidget::setCursorTextColor(QColor color)
+void GidConsoleWidget::setCursorTextColor(QColor color, QBrush background)
 {
     QTextCharFormat f;
     f.setForeground(QBrush(color));
+    f.setBackground(background);
     mCursor.setCharFormat(f);
 }
 
@@ -170,7 +171,7 @@ void GidConsoleWidget::procressToPrint(ToPrint tp)
 
     int size = 512;
     for (int i = 0; i < tp.txt.count(); i += size) {
-        toPrint.append({tp.txt.mid(i, i+size), tp.color});
+        toPrint.append({tp.txt.mid(i, i+size), tp.color, tp.backround});
     }
 
     if (start) {
@@ -206,10 +207,9 @@ void GidConsoleWidget::process(ToPrint tp)
      * effect manual line wrapping.
      */
 
-    QColor color = tp.color;
     QString txt = tp.txt;
 
-    setCursorTextColor(color);
+    setCursorTextColor(tp.color, tp.backround);
 
     // Workaround for scrolling when widget is not full of text yet.
     bool scroll;

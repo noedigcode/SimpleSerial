@@ -423,11 +423,13 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
             }
         }
 
+        QBrush background = (dataDir == DataSend) ? sendBackground() : QBrush();
+
         if (outputHex) {
             QString hex = QString("%1").arg(c, 2, 16, QChar('0')).toUpper();;
             bool virtuallyAtLineStart =    printTimestamp
                                         || ui->console->cursorIsOnNewLine();
-            addNonBreakingTextToConsole(hex, hexColor(),
+            addNonBreakingTextToConsole(hex, hexColor(), background,
                                         virtuallyAtLineStart, true);
             lastWasHex = true;
         }
@@ -441,7 +443,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
                         addTextToConsoleAndLogIfEnabled(" ", normalTextColor());
                         lastWasHex = false;
                     }
-                    addNonBreakingTextToConsole("<LF>", hexColor());
+                    addNonBreakingTextToConsole("<LF>", hexColor(), background);
                 }
                 if (!ui->checkBox_crLfNewline->isChecked()) {
                     // Prevent outputting newline
@@ -454,7 +456,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
                         addTextToConsoleAndLogIfEnabled(" ", normalTextColor());
                         lastWasHex = false;
                     }
-                    addNonBreakingTextToConsole("<CR>", hexColor());
+                    addNonBreakingTextToConsole("<CR>", hexColor(), background);
                 }
             }
 
@@ -463,7 +465,8 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
                     addTextToConsoleAndLogIfEnabled(" ", normalTextColor());
                     lastWasHex = false;
                 }
-                addTextToConsoleAndLogIfEnabled(QString(c), normalTextColor());
+                addTextToConsoleAndLogIfEnabled(QString(c), normalTextColor(),
+                                                background);
             }
         }
 
@@ -483,6 +486,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
 }
 
 void MainWindow::addNonBreakingTextToConsole(QString text, QColor color,
+                                             QBrush background,
                                              bool virtuallyAtLineStart,
                                              bool addSpaceBefore)
 {
@@ -502,12 +506,13 @@ void MainWindow::addNonBreakingTextToConsole(QString text, QColor color,
         }
     }
 
-    addTextToConsoleAndLogIfEnabled(text, color);
+    addTextToConsoleAndLogIfEnabled(text, color, background);
 }
 
-void MainWindow::addTextToConsoleAndLogIfEnabled(QString text, QColor color)
+void MainWindow::addTextToConsoleAndLogIfEnabled(QString text, QColor color,
+                                                 QBrush background)
 {
-    ui->console->addText(text, color);
+    ui->console->addText(text, color, background);
     if (ui->radioButton_log_asDisplayed->isChecked()) {
         log(text.toLocal8Bit());
     }
@@ -531,6 +536,11 @@ QColor MainWindow::hexColor()
 QColor MainWindow::systemTextColor()
 {
     return Qt::darkGray;
+}
+
+QBrush MainWindow::sendBackground()
+{
+    return QBrush(QColor(0, 0, 255, 64));
 }
 
 void MainWindow::setCommsModeAndUpdateGui(CommsMode mode)
