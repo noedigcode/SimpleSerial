@@ -255,6 +255,8 @@ private slots:
 
     void on_spinBox_tabWidth_valueChanged(int value);
 
+    void on_checkBox_showDuck_toggled(bool checked);
+
 private:
     QBasicTimer timedMsgTimer;
     void onTimedMsgTimer();
@@ -292,6 +294,7 @@ private:
     const QString settingShowCrLfHex = "showCrLfHex";
     const QString settingNewlineForCrLf = "newlineForCrLf";
     const QString settingTabWidth = "tabWidth";
+    const QString settingShowDuck = "showDuck";
     const QString settingReplaceEscapeSequences = "replaceEscapeSequences";
     const QString settingShowSentData = "showSentData";
     const QString settingSentDataOnSeparateLine = "sentDataOnSeparateLine";

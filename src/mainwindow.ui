@@ -207,6 +207,22 @@
                  </widget>
                 </item>
                 <item>
+                 <widget class="QGroupBox" name="groupBox_13">
+                  <property name="title">
+                   <string>Sitting Duck</string>
+                  </property>
+                  <layout class="QVBoxLayout" name="verticalLayout_19">
+                   <item>
+                    <widget class="QCheckBox" name="checkBox_showDuck">
+                     <property name="text">
+                      <string>Insert an occasional duck to make the movement of text more visible</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
                  <spacer name="verticalSpacer_10">
                   <property name="orientation">
                    <enum>Qt::Vertical</enum>

@@ -91,6 +91,8 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
 
         on_checkBox_sendFile_enable_clicked();
     }
+
+    ui->console->setTextMovementMarker("🦆");
 }
 
 MainWindow::~MainWindow()
@@ -1066,9 +1068,13 @@ void MainWindow::loadGeneralSettings()
     initCheckableSetting(settingHexSpecial, ui->checkBox_showHexForSpecialChars);
     initCheckableSetting(settingShowCrLfHex, ui->checkBox_showCrLfHex);
     initCheckableSetting(settingNewlineForCrLf, ui->checkBox_crLfNewline);
+
     initSpinBox(settingTabWidth, ui->spinBox_tabWidth);
     ui->console->setTabCharacterWidth(
                 settings.value(settingTabWidth, ui->spinBox_tabWidth->value()).toInt());
+
+    initCheckableSetting(settingShowDuck, ui->checkBox_showDuck);
+    ui->console->enableTextMovementMarker(settings.value(settingShowDuck).toBool());
 
     // Replace escape sequences setting
     initCheckableSetting(settingReplaceEscapeSequences,
@@ -1717,5 +1723,10 @@ void MainWindow::on_lineEdit_tcpClient_port_returnPressed()
 void MainWindow::on_spinBox_tabWidth_valueChanged(int value)
 {
     ui->console->setTabCharacterWidth(value);
+}
+
+void MainWindow::on_checkBox_showDuck_toggled(bool checked)
+{
+    ui->console->enableTextMovementMarker(checked);
 }
 

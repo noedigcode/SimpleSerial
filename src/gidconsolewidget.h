@@ -48,6 +48,9 @@ public:
 
     void setTabCharacterWidth(int chars);
 
+    void enableTextMovementMarker(bool enable);
+    void setTextMovementMarker(QString marker);
+
 public slots:
     void zoomIn(int range = 1);
     void zoomOut(int range = 1);
@@ -67,6 +70,12 @@ private:
     float mCharWidth = 1;
     int mCharsPerTab = 8;
     void updateLineWidthInfo();
+
+    int mMaxRows = 30;
+    int mRowCounter = 0;
+    QString mTextMovementMarker = "";
+    bool mEnableTextMovementMarker = false;
+    bool isItTimeToAddTextMovementMarker();
 
     void setCursorTextColor(QColor color, QBrush background = QBrush());
 

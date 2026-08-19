@@ -106,6 +106,16 @@ void GidConsoleWidget::setTabCharacterWidth(int chars)
     updateLineWidthInfo();
 }
 
+void GidConsoleWidget::enableTextMovementMarker(bool enable)
+{
+    mEnableTextMovementMarker = enable;
+}
+
+void GidConsoleWidget::setTextMovementMarker(QString marker)
+{
+    mTextMovementMarker = marker;
+}
+
 void GidConsoleWidget::zoomIn(int range)
 {
     QPlainTextEdit::zoomIn(range);
@@ -130,6 +140,20 @@ void GidConsoleWidget::updateLineWidthInfo()
 
     // Update tab stop distance from character width
     this->setTabStopDistance(mCharWidth * mCharsPerTab);
+
+    mMaxRows = this->viewport()->height() / fm.height();
+}
+
+bool GidConsoleWidget:: isItTimeToAddTextMovementMarker()
+{
+    mRowCounter++;
+    if (mEnableTextMovementMarker && this->isVisible()) {
+        if (mRowCounter >= mMaxRows - 4) {
+            mRowCounter = 0;
+            return true;
+        }
+    }
+    return false;
 }
 
 void GidConsoleWidget::setCursorTextColor(QColor color, QBrush background)
@@ -229,6 +253,10 @@ void GidConsoleWidget::process(ToPrint tp)
         if (c == '\n') {
             toadd = 0;
             mLineLength = 0;
+
+            if (isItTimeToAddTextMovementMarker()) {
+                towrite += "\n" + mTextMovementMarker;
+            }
         } else if (c == '\t') {
             toadd = mCharsPerTab - (mLineLength % mCharsPerTab);
         } else {
@@ -238,6 +266,10 @@ void GidConsoleWidget::process(ToPrint tp)
         if (mLineLength + toadd > mMaxLineChars) {
             towrite += '\n';
             mLineLength = toadd;
+
+            if (isItTimeToAddTextMovementMarker()) {
+                towrite += mTextMovementMarker + "\n";
+            }
         } else {
             mLineLength += toadd;
         }
