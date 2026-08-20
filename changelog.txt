@@ -8,6 +8,7 @@ Added
 
 - Option to automatically set DTR after opening serial port added to serial port
   open dialog.
+- Optional marker so the movement of text can more easily be seen.
 
 Changes
 
