@@ -267,6 +267,9 @@ private:
     void closeEvent(QCloseEvent *event);
     bool eventFilter(QObject *watched, QEvent *event);
 
+    bool firstShow = true;
+    void showEvent(QShowEvent *event);
+
     void focusAndSelectSendText();
 
     void onAutoScrollChanged();

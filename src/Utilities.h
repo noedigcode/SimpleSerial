@@ -22,13 +22,14 @@
 #define UTILITIES_H
 
 #include <QFont>
+#include <QScreen>
 
 class Utilities
 {
 public:
     static QFont getMonospaceFont();
 
-    static QSize scaleWithPrimaryScreenScalingFactor(QSize size);
+    static QSize scaleWithScreenScalingFactor(QScreen* screen, QSize size);
 };
 
 #endif // UTILITIES_H

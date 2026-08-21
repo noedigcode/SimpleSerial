@@ -44,8 +44,6 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
 
     showStartupPage();
 
-    this->resize(Utilities::scaleWithPrimaryScreenScalingFactor(this->size()));
-
     onToolsVisibilityChanged();
     // Default tools tabs
     ui->tabWidget_tools->setCurrentWidget(ui->tab_options);
@@ -170,6 +168,15 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
     }
 
     return ret;
+}
+
+void MainWindow::showEvent(QShowEvent* /*event*/)
+{
+    if (firstShow) {
+        this->resize(Utilities::scaleWithScreenScalingFactor(this->screen(),
+                                                             this->size()));
+        firstShow = false;
+    }
 }
 
 void MainWindow::focusAndSelectSendText()
@@ -728,7 +735,8 @@ void MainWindow::setupSerial()
 
     serial.setWindowModality(Qt::ApplicationModal);
     serial.setWindowTitle(QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
-    serial.resize(Utilities::scaleWithPrimaryScreenScalingFactor(serial.size()));
+    serial.resize(Utilities::scaleWithScreenScalingFactor(serial.screen(),
+                                                          serial.size()));
 }
 
 void MainWindow::sendSerial(QByteArray data)

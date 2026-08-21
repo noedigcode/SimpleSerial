@@ -40,6 +40,9 @@ private slots:
 
 private:
     Ui::AboutDialog *ui;
+
+    bool firstShow = true;
+    void showEvent(QShowEvent *event);
 };
 
 #endif // ABOUTDIALOG_H

@@ -40,11 +40,10 @@ QFont Utilities::getMonospaceFont()
     return font;
 }
 
-QSize Utilities::scaleWithPrimaryScreenScalingFactor(QSize size)
+QSize Utilities::scaleWithScreenScalingFactor(QScreen *screen, QSize size)
 {
     static const qreal baselineDpi = 96.0;
 
-    qreal scalingFactor = QGuiApplication::primaryScreen()->logicalDotsPerInch()
-                          / baselineDpi;
+    qreal scalingFactor = screen->logicalDotsPerInch() / baselineDpi;
     return size * scalingFactor;
 }

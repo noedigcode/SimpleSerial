@@ -33,8 +33,6 @@ AboutDialog::AboutDialog(QString settingsText, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    this->resize(Utilities::scaleWithPrimaryScreenScalingFactor(this->size()));
-
     // Hide the context help button in the title bar
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
@@ -67,5 +65,14 @@ AboutDialog::~AboutDialog()
 void AboutDialog::on_pushButton_clicked()
 {
     this->hide();
+}
+
+void AboutDialog::showEvent(QShowEvent* /*event*/)
+{
+    if (firstShow) {
+        this->resize(Utilities::scaleWithScreenScalingFactor(this->screen(),
+                                                             this->size()));
+        firstShow = false;
+    }
 }
 
