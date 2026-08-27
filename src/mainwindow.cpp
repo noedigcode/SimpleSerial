@@ -31,9 +31,7 @@
 
 MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow),
-    settings(QSettings::NativeFormat, QSettings::UserScope,
-             "Noedigcode", "SimpleSerial")
+    ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
 
@@ -91,11 +89,22 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
     }
 
     ui->console->setTextMovementMarker("🦆");
+
+    setupGuiStyleMenu();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+QString MainWindow::getDefaultGuiStyle(QApplication *app)
+{
+    QString defaultStyle = "windowsvista";
+    if (!QStyleFactory::keys().contains(defaultStyle, Qt::CaseInsensitive)) {
+        defaultStyle = app->style()->objectName();
+    }
+    return defaultStyle;
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -196,96 +205,65 @@ void MainWindow::onToolsVisibilityChanged()
     ui->tabWidget_tools->setVisible(ui->action_Tools->isChecked());
 }
 
-void MainWindow::initActionCheckedSetting(QString settingKey, QAction *action)
+void MainWindow::initActionCheckedSetting(Settings::SettingPtr setting, QAction *action)
 {
     // Set the action checked based on the setting, default to the current
     // action state if the setting does not exist.
-    action->setChecked(settings.value(settingKey, action->isChecked()).toBool());
+    action->setChecked(setting->getOrDefault(action->isChecked()).toBool());
     connect(action, &QAction::changed, [=](){
-        settings.setValue(settingKey, action->isChecked());
+        setting->set(action->isChecked());
     });
 }
 
-void MainWindow::initCheckableSetting(QString settingKey, QAbstractButton* widget)
+void MainWindow::initCheckableSetting(Settings::SettingPtr setting, QAbstractButton* widget)
 {
     // Set the checkbox checked based on the setting, default to the current
     // state if the setting does not exist.
-    widget->setChecked(settings.value(settingKey, widget->isChecked()).toBool());
+    widget->setChecked(setting->getOrDefault(widget->isChecked()).toBool());
     connect(widget, &QCheckBox::toggled, [=](){
-        settings.setValue(settingKey, widget->isChecked());
+        setting->set(widget->isChecked());
     });
 }
 
-void MainWindow::initLineEditSetting(QString settingKey, QLineEdit* lineEdit)
+void MainWindow::initLineEditSetting(Settings::SettingPtr setting, QLineEdit* lineEdit)
 {
-    lineEdit->setText(settings.value(settingKey, lineEdit->text()).toString());
+    lineEdit->setText(setting->getOrDefault(lineEdit->text()).toString());
     connect(lineEdit, &QLineEdit::textChanged, [=](){
-        settings.setValue(settingKey, lineEdit->text());
+        setting->set(lineEdit->text());
     });
 }
 
-void MainWindow::initSpinBox(QString settingKey, QSpinBox* spinBox)
+void MainWindow::initSpinBox(Settings::SettingPtr setting, QSpinBox* spinBox)
 {
-    spinBox->setValue(settings.value(settingKey, spinBox->value()).toInt());
+    spinBox->setValue(setting->getOrDefault(spinBox->value()).toInt());
     connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value)
     {
-        settings.setValue(settingKey, value);
+        setting->set(value);
     });
-}
-
-QList<QMap<QString, QVariant>> MainWindow::getSettingsArray(QString arrayName)
-{
-    QList<QMap<QString, QVariant>> items;
-    int size = settings.beginReadArray(arrayName);
-    for (int i = 0; i < size; i++) {
-        settings.setArrayIndex(i);
-        QStringList keys = settings.childKeys();
-        QMap<QString, QVariant> keyVals;
-        foreach (QString key, keys) {
-            keyVals.insert(key, settings.value(key).toString());
-        }
-        items.append(keyVals);
-    }
-    settings.endArray();
-    return items;
-}
-
-void MainWindow::setSettingsArray(QString arrayName,
-                                  QList<QMap<QString, QVariant> > items)
-{
-    settings.beginWriteArray(arrayName);
-    for (int i = 0; i < items.size(); i++) {
-        settings.setArrayIndex(i);
-        QMap<QString, QVariant> keyVals = items.value(i);
-        foreach (QString key, keyVals.keys()) {
-            settings.setValue(key, keyVals.value(key));
-        }
-    }
-    settings.endArray();
 }
 
 void MainWindow::readMacrosFromSettings()
 {
-    QList<QMap<QString, QVariant>> macros = getSettingsArray(settingMacrosArray);
+    const Settings::KeyValList macros = settings.macros->get();
 
     ui->listWidget_macros->clear();
-    for (const QMap<QString, QVariant> &keyVals : macros) {
-        ui->listWidget_macros->addItem(keyVals.value(settingMacroValue).toString());
+    for (const Settings::KeyVals &keyVals : macros) {
+        ui->listWidget_macros->addItem(keyVals.value(settings.macroValue->key()).toString());
     }
 }
 
 void MainWindow::saveMacrosToSettings()
 {
-    QList<QMap<QString, QVariant>> macros;
+    Settings::KeyValList macros;
 
     for (int i = 0; i < ui->listWidget_macros->count(); i++) {
         QListWidgetItem* item = ui->listWidget_macros->item(i);
-        QMap<QString, QVariant> keyVals;
-        keyVals.insert(settingMacroValue, item->text());
+        Settings::KeyVals keyVals;
+        keyVals.insert(settings.macroValue->key(), item->text());
         macros.append(keyVals);
     }
 
-    setSettingsArray(settingMacrosArray, macros);
+    settings.macros->set(macros);
 }
 
 void MainWindow::updateMacroGuiButtonsEnabled()
@@ -346,7 +324,7 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
 
     bool timestampShown = false;
 
-    for (int i=0; i < data.count(); i++) {
+    for (int i=0; i < data.length(); i++) {
 
         unsigned char c = data.at(i);
         bool outputHex = false;
@@ -474,8 +452,8 @@ void MainWindow::addDataToConsole(QByteArray data, DataDirection dataDir)
                     addTextToConsoleAndLogIfEnabled(" ", normalTextColor());
                     lastWasHex = false;
                 }
-                addTextToConsoleAndLogIfEnabled(QString(c), normalTextColor(),
-                                                background);
+                addTextToConsoleAndLogIfEnabled(QString(QChar(c)),
+                                                normalTextColor(), background);
             }
         }
 
@@ -579,7 +557,7 @@ void MainWindow::onDataReceived(QByteArray data)
     dataDisplay.processData(data, DataReceive);
 
     // Display number of received bytes
-    numBytesRx += data.count();
+    numBytesRx += data.length();
     updateCounterLabels();
 
     // Log raw data if enabled
@@ -590,9 +568,9 @@ void MainWindow::onDataReceived(QByteArray data)
 
     // Auto-reply
     if (ui->checkBox_AutoReply_Enable->isChecked()) {
-        for (int i=0; i < data.count(); i++) {
+        for (int i=0; i < data.length(); i++) {
             mAutoReplyBuffer.append( data.at(i) );
-            while (mAutoReplyBuffer.count() > ui->lineEdit_AutoReply_rx->text().count()) {
+            while (mAutoReplyBuffer.length() > ui->lineEdit_AutoReply_rx->text().length()) {
                 mAutoReplyBuffer.remove(0,1);
             }
             if (mAutoReplyBuffer == ui->lineEdit_AutoReply_rx->text()) {
@@ -616,7 +594,7 @@ void MainWindow::sendData(QByteArray data, bool allowEscapeSequenceReplace)
             QByteArray lowerData = data.toLower();
             QByteArray buffer; // Collect bytes to be converted to hex
             int state = 0;
-            for (int i = 0; i < data.count(); i++) {
+            for (int i = 0; i < data.length(); i++) {
                 char c = data.at(i);
                 char clower = lowerData.at(i);
                 bool addChar = false; // Add current char to send data
@@ -692,7 +670,7 @@ void MainWindow::sendData(QByteArray data, bool allowEscapeSequenceReplace)
         break;
     }
 
-    numBytesTx += data.count();
+    numBytesTx += data.length();
     updateCounterLabels();
 
     if (ui->checkBox_showSentDataInConsole->isChecked()) {
@@ -705,12 +683,7 @@ void MainWindow::sendData(QByteArray data, bool allowEscapeSequenceReplace)
 void MainWindow::setupSerial()
 {
     // Serial settings
-    QMap<QString, QString> serialSettings;
-    settings.beginGroup("serial");
-    foreach (QString key, settings.allKeys()) {
-        serialSettings.insert(key, settings.value(key).toString());
-    }
-    settings.endGroup();
+    QMap<QString, QString> serialSettings = settings.getGroupKeyVals("serial");
     serial.setSettings(serialSettings);
 
     connect(&(serial.s), &QSerialPort::readyRead,
@@ -786,13 +759,8 @@ void MainWindow::onSerialPortOpened()
 
     focusAndSelectSendText();
 
-    // Save settings
-    QMap<QString, QString> serialSettings = serial.getSettings();
-    settings.beginGroup("serial");
-    foreach (QString key, serialSettings.keys()) {
-        settings.setValue(key, serialSettings.value(key));
-    }
-    settings.endGroup();
+    // Save serial settings
+    settings.setGroupKeyVals("serial", serial.getSettings());
 
     ui->action_Set_DTR->setChecked(serial.s.isDataTerminalReady());
     ui->action_Set_DTR_toolbar->setChecked(serial.s.isDataTerminalReady());
@@ -943,7 +911,7 @@ QString MainWindow::logFilePathFromDialog(QString prevFilename)
 
 void MainWindow::onConsoleZoomChanged()
 {
-    settings.setValue(settingConsoleFontPointSize, ui->console->getFontPointSize());
+    settings.consoleFontPointSize->set(ui->console->getFontPointSize());
 }
 
 void MainWindow::printSerial(QString msg)
@@ -1040,7 +1008,7 @@ void MainWindow::on_actionSet_Window_Title_triggered()
 void MainWindow::on_actionAbout_triggered()
 {
     if (!aboutDialog) {
-        aboutDialog = new AboutDialog(settings.fileName(), this);
+        aboutDialog = new AboutDialog(settings.qSettings.fileName(), this);
         aboutDialog->setWindowModality(Qt::ApplicationModal);
     }
     aboutDialog->show();
@@ -1048,7 +1016,7 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_comboBox_SendCRLF_currentIndexChanged(int index)
 {
-    settings.setValue(settingCrLf, index);
+    settings.crLf->set(index);
 }
 
 void MainWindow::on_actionWindow_Always_On_Top_toggled(bool arg1)
@@ -1060,78 +1028,125 @@ void MainWindow::on_actionWindow_Always_On_Top_toggled(bool arg1)
 void MainWindow::loadGeneralSettings()
 {
     // Auto scroll
-    initActionCheckedSetting(settingAutoScroll, ui->actionAuto_Scroll);
+    initActionCheckedSetting(settings.autoScroll, ui->actionAuto_Scroll);
     onAutoScrollChanged();
 
     // Send CR/LF
     ui->comboBox_SendCRLF->blockSignals(true);
-    ui->comboBox_SendCRLF->setCurrentIndex(settings.value(settingCrLf).toInt());
+    ui->comboBox_SendCRLF->setCurrentIndex(settings.crLf->getOrDefault(0).toInt());
     ui->comboBox_SendCRLF->blockSignals(false);
 
     // Display mode
-    initCheckableSetting(settingDisplayModeText, ui->radioButton_displayMode_text);
-    initCheckableSetting(settingDisplayModeHex, ui->radioButton_displayMode_hex);
+    initCheckableSetting(settings.displayModeText, ui->radioButton_displayMode_text);
+    initCheckableSetting(settings.displayModeHex, ui->radioButton_displayMode_hex);
 
     // Text mode settings
-    initCheckableSetting(settingHexSpecial, ui->checkBox_showHexForSpecialChars);
-    initCheckableSetting(settingShowCrLfHex, ui->checkBox_showCrLfHex);
-    initCheckableSetting(settingNewlineForCrLf, ui->checkBox_crLfNewline);
+    initCheckableSetting(settings.hexSpecial, ui->checkBox_showHexForSpecialChars);
+    initCheckableSetting(settings.showCrLfHex, ui->checkBox_showCrLfHex);
+    initCheckableSetting(settings.newlineForCrLf, ui->checkBox_crLfNewline);
 
-    initSpinBox(settingTabWidth, ui->spinBox_tabWidth);
-    ui->console->setTabCharacterWidth(
-                settings.value(settingTabWidth, ui->spinBox_tabWidth->value()).toInt());
+    initSpinBox(settings.tabWidth, ui->spinBox_tabWidth);
+    ui->console->setTabCharacterWidth(settings.tabWidth->getOrDefault(
+                                          ui->spinBox_tabWidth->value())
+                                      .toInt());
 
-    initCheckableSetting(settingShowDuck, ui->checkBox_showDuck);
-    ui->console->enableTextMovementMarker(settings.value(settingShowDuck).toBool());
+    initCheckableSetting(settings.showDuck, ui->checkBox_showDuck);
+    ui->console->enableTextMovementMarker(settings.showDuck->getOrDefault().toBool());
 
     // Replace escape sequences setting
-    initCheckableSetting(settingReplaceEscapeSequences,
+    initCheckableSetting(settings.replaceEscapeSequences,
                         ui->checkBox_sending_replaceEscapeSequences);
 
     // Show sent data
-    initCheckableSetting(settingShowSentData, ui->checkBox_showSentDataInConsole);
-    initCheckableSetting(settingSentDataOnSeparateLine,
+    initCheckableSetting(settings.showSentData, ui->checkBox_showSentDataInConsole);
+    initCheckableSetting(settings.sentDataOnSeparateLine,
                          ui->checkBox_showSentDataOnSeparateLine);
 
     // TCP server settings
-    initLineEditSetting(settingTcpServerPort, ui->lineEdit_tcpServer_port);
+    initLineEditSetting(settings.tcpServerPort, ui->lineEdit_tcpServer_port);
 
     // TCP client settings
-    initLineEditSetting(settingTcpClientIp, ui->lineEdit_tcpClient_ipAddress);
-    initLineEditSetting(settingTcpClientPort, ui->lineEdit_tcpClient_port);
+    initLineEditSetting(settings.tcpClientIp, ui->lineEdit_tcpClient_ipAddress);
+    initLineEditSetting(settings.tcpClientPort, ui->lineEdit_tcpClient_port);
 
     // UDP settings
-    initCheckableSetting(settingUdpBindForListen, ui->checkBox_udp_bindForListening);
-    initLineEditSetting(settingUdpBindPort, ui->lineEdit_udp_listenPort);
-    initCheckableSetting(settingUdpSendBroadcast, ui->checkBox_udp_broadcast);
-    initLineEditSetting(settingUdpSendIp, ui->lineEdit_udp_sendIpAddress);
-    initLineEditSetting(settingUdpSendPort, ui->lineEdit_udp_sendPort);
+    initCheckableSetting(settings.udpBindForListen, ui->checkBox_udp_bindForListening);
+    initLineEditSetting(settings.udpBindPort, ui->lineEdit_udp_listenPort);
+    initCheckableSetting(settings.udpSendBroadcast, ui->checkBox_udp_broadcast);
+    initLineEditSetting(settings.udpSendIp, ui->lineEdit_udp_sendIpAddress);
+    initLineEditSetting(settings.udpSendPort, ui->lineEdit_udp_sendPort);
 
     // Send file settings
-    initLineEditSetting(settingSendFilePath, ui->lineEdit_sendFile_path);
-    initSpinBox(settingSendFileFrequencyMs, ui->spinBox_sendFile_ms);
-    initCheckableSetting(settingSendFileExcludeEndingNewline, ui->checkBox_sendFile_excludeEndingNewline);
-    initCheckableSetting(settingSendFileSendMsgIfFileEmpty, ui->checkBox_sendFile_sendMsgIfEmpty);
-    initLineEditSetting(settingSendFileMsgIfEmpty, ui->lineEdit_sendFile_msgIfEmpty);
+    initLineEditSetting(settings.sendFilePath, ui->lineEdit_sendFile_path);
+    initSpinBox(settings.sendFileFrequencyMs, ui->spinBox_sendFile_ms);
+    initCheckableSetting(settings.sendFileExcludeEndingNewline, ui->checkBox_sendFile_excludeEndingNewline);
+    initCheckableSetting(settings.sendFileSendMsgIfFileEmpty, ui->checkBox_sendFile_sendMsgIfEmpty);
+    initLineEditSetting(settings.sendFileMsgIfEmpty, ui->lineEdit_sendFile_msgIfEmpty);
 
     // Timestamps
-    initCheckableSetting(settingTimestampsEnabled, ui->checkBox_timestamps_enable);
-    initCheckableSetting(settingTimestampsOnlyAfterNewlines, ui->checkBox_timestamps_after_newline);
-    initSpinBox(settingTimestampGroupTimeMs, ui->spinBox_timestamps_time_ms);
-    initCheckableSetting(settingTimestampAddTabAfter, ui->checkBox_timestamps_addTabAfterTimestamp);;
+    initCheckableSetting(settings.timestampsEnabled, ui->checkBox_timestamps_enable);
+    initCheckableSetting(settings.timestampsOnlyAfterNewlines, ui->checkBox_timestamps_after_newline);
+    initSpinBox(settings.timestampGroupTimeMs, ui->spinBox_timestamps_time_ms);
+    initCheckableSetting(settings.timestampAddTabAfter, ui->checkBox_timestamps_addTabAfterTimestamp);;
 
     // Macros send CR/LF combo box
     ui->comboBox_macros_append->blockSignals(true);
-    ui->comboBox_macros_append->setCurrentIndex(settings.value(settingMacrosSendCrlf).toInt());
+    ui->comboBox_macros_append->setCurrentIndex(
+                settings.macrosSendCrlf->getOrDefault().toInt());
     ui->comboBox_macros_append->blockSignals(false);
 
     // Macros list
     readMacrosFromSettings();
 
     // Console font size (i.e. zoom)
-    if (settings.contains(settingConsoleFontPointSize)) {
-        int pointSize = settings.value(settingConsoleFontPointSize, 9).toInt();
+
+    if (settings.consoleFontPointSize->isSet()) {
+        int pointSize = settings.consoleFontPointSize->getOrDefault(9).toInt();
         ui->console->setFontPointSize(pointSize);
+    }
+}
+
+void MainWindow::setupGuiStyleMenu()
+{
+    mStyleMenu = ui->menuView->addMenu("GUI Style");
+
+    addGuiStyleAction("Default", "");
+    mStyleMenu->addSeparator();
+    for (const QString& style : QStyleFactory::keys()) {
+        addGuiStyleAction(style, style);
+    }
+
+    updateGuiStyleMenuChecks();
+}
+
+void MainWindow::addGuiStyleAction(QString title, QString style)
+{
+    QAction* action = mStyleMenu->addAction(title, [=]() {
+        guiStyleActionTriggered(style);
+    });
+    action->setData(style);
+    action->setCheckable(true);
+    styleActions.append(action);
+}
+
+void MainWindow::guiStyleActionTriggered(QString style)
+{
+    settings.guiStyle->set(style);
+
+    if (style.isEmpty()) {
+        style = getDefaultGuiStyle(qApp);
+    }
+    qApp->setStyle(QStyleFactory::create(style));
+
+    updateGuiStyleMenuChecks();
+}
+
+void MainWindow::updateGuiStyleMenuChecks()
+{
+    QString style = qApp->style()->objectName(); // settings.guiStyle->getOrDefault().toString();
+
+    for (QAction* action : styleActions) {
+        action->setChecked(action->data().toString().toLower() == style.toLower());
     }
 }
 
@@ -1598,31 +1613,31 @@ void MainWindow::DataDisplayProcessor::processNext()
 
     QElapsedTimer timer;
     timer.start();
-    int countBefore = rxbuffer.count() + txbuffer.count();
+    int countBefore = rxbuffer.length() + txbuffer.length();
     while (timer.elapsed() < allowedMs) {
         qint64 msBefore = timer.elapsed();
 
         // Split number of bytes to be processed between incoming and outgoing.
         int nrx = bufferProcessSize / 2;
         int ntx = nrx;
-        if (txbuffer.count() < ntx) {
-            nrx += ntx - txbuffer.count();
+        if (txbuffer.length() < ntx) {
+            nrx += ntx - txbuffer.length();
         }
-        if (rxbuffer.count() < nrx) {
-            ntx += nrx - rxbuffer.count();
+        if (rxbuffer.length() < nrx) {
+            ntx += nrx - rxbuffer.length();
         }
 
         // Process incoming
         QByteArray data = rxbuffer.left(nrx);
         rxbuffer.remove(0, nrx);
         mainWindow->addDataToConsole(data, DataReceive);
-        int dataCount = data.count();
+        int dataCount = data.length();
 
         // Process outgoing
         data = txbuffer.left(ntx);
         txbuffer.remove(0, ntx);
         mainWindow->addDataToConsole(data, DataSend);
-        dataCount += data.count();
+        dataCount += data.length();
 
         qint64 msAfter = timer.elapsed();
 
@@ -1641,7 +1656,7 @@ void MainWindow::DataDisplayProcessor::processNext()
     lastProcessMs = timer.elapsed();
 
     // Drop calculation
-    int countAfter = rxbuffer.count() + txbuffer.count();
+    int countAfter = rxbuffer.length() + txbuffer.length();
     int bufmax = 0;
     if (countAfter > 0) {
         int ms = timer.elapsed();
@@ -1654,8 +1669,8 @@ void MainWindow::DataDisplayProcessor::processNext()
     if (countAfter > bufmax) {
         int drop = countAfter - bufmax;
         // First drop from send display buffer
-        int dropTx = qMin(txbuffer.count(), drop);
-        int dropRx = qMin(rxbuffer.count(), drop - dropTx);
+        int dropTx = qMin(txbuffer.length(), drop);
+        int dropRx = qMin(rxbuffer.length(), drop - dropTx);
         txbuffer.remove(0, dropTx);
         rxbuffer.remove(0, dropRx);
         mainWindow->numBytesDroppedFromDisplay += drop;
@@ -1669,12 +1684,12 @@ void MainWindow::DataDisplayProcessor::processNext()
                 QString("%1 ms").arg(lastProcessMs));
     int percent = 0;
     if (bufmax) {
-        percent = (float)(rxbuffer.count() + txbuffer.count())
+        percent = (float)(rxbuffer.length() + txbuffer.length())
                 / (float)bufmax * 100.0;
     }
     mainWindow->ui->label_backlogFill->setText(
                 QString("%1 bytes (%2 %)")
-                .arg(rxbuffer.count() + txbuffer.count())
+                .arg(rxbuffer.length() + txbuffer.length())
                 .arg(percent));
 
     // Queue next call to this function so rest of GUI has a chance to run.
@@ -1703,7 +1718,7 @@ void MainWindow::on_action_Set_RTS_toggled(bool set)
 
 void MainWindow::on_comboBox_macros_append_currentIndexChanged(int index)
 {
-    settings.setValue(settingMacrosSendCrlf, index);
+    settings.macrosSendCrlf->set(index);
 }
 
 void MainWindow::on_listWidget_macros_currentItemChanged(QListWidgetItem* /*current*/,

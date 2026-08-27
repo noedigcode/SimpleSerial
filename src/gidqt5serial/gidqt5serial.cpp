@@ -141,9 +141,15 @@ void GidQt5Serial::refreshSerialPortList()
     serialPortList = QSerialPortInfo::availablePorts();
     for (int i=0; i<serialPortList.count(); i++) {
         QString name = serialPortList[i].portName();
+
+        #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        // NOTE: Qt6 removed isBusy(). This could be done manually by trying to
+        // open each port. For now it is not done.
+        #else
         if (serialPortList[i].isBusy()) {
             name.append(" (busy)");
         }
+        #endif
         ui->listWidget_Ports->addItem(name);
     }
 }

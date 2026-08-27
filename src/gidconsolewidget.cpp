@@ -194,7 +194,7 @@ void GidConsoleWidget::procressToPrint(ToPrint tp)
     bool start = toPrint.isEmpty();
 
     int size = 512;
-    for (int i = 0; i < tp.txt.count(); i += size) {
+    for (int i = 0; i < tp.txt.length(); i += size) {
         toPrint.append({tp.txt.mid(i, i+size), tp.color, tp.backround});
     }
 

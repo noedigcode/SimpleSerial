@@ -25,19 +25,23 @@
 #include "gidqt5serial.h"
 #include "gidtcp.h"
 #include "gidudp.h"
+#include "settings.h"
 #include "version.h"
 
 #include <QBasicTimer>
 #include <QCheckBox>
 #include <QElapsedTimer>
+#include <QFile>
 #include <QInputDialog>
 #include <QMainWindow>
 #include <QMap>
+#include <QMenu>
 #include <QNetworkInterface>
 #include <QSerialPort>
 #include <QSerialPortInfo>
 #include <QSettings>
 #include <QSpinBox>
+#include <QStyleFactory>
 
 
 namespace Ui {
@@ -63,12 +67,21 @@ public:
     explicit MainWindow(StartupOptions options, QWidget *parent = 0);
     ~MainWindow();
 
+    static QString getDefaultGuiStyle(QApplication *app);
+
 private:
     Ui::MainWindow *ui;
     QString mAutoReplyBuffer;
 
-    QSettings settings;
+    SimpleSerialSettings settings;
     void loadGeneralSettings();
+
+    QMenu* mStyleMenu = nullptr;
+    QList<QAction*> styleActions;
+    void setupGuiStyleMenu();
+    void addGuiStyleAction(QString title, QString style);
+    void guiStyleActionTriggered(QString style);
+    void updateGuiStyleMenuChecks();
 
     AboutDialog* aboutDialog = nullptr;
 
@@ -275,54 +288,16 @@ private:
     void onAutoScrollChanged();
     void onToolsVisibilityChanged();
 
-    void initActionCheckedSetting(QString settingKey, QAction* action);
-    void initCheckableSetting(QString settingKey, QAbstractButton* widget);
-    void initLineEditSetting(QString settingKey, QLineEdit* lineEdit);
-    void initSpinBox(QString settingKey, QSpinBox* spinBox);
-
-    QList<QMap<QString, QVariant> > getSettingsArray(QString arrayName);
-    void setSettingsArray(QString arrayName, QList<QMap<QString, QVariant>> items);
+    void initActionCheckedSetting(Settings::SettingPtr setting, QAction* action);
+    void initCheckableSetting(Settings::SettingPtr setting, QAbstractButton* widget);
+    void initLineEditSetting(Settings::SettingPtr setting, QLineEdit* lineEdit);
+    void initSpinBox(Settings::SettingPtr setting, QSpinBox* spinBox);
 
     void readMacrosFromSettings();
     void saveMacrosToSettings();
     void updateMacroGuiButtonsEnabled();
 
     void printNetworkAddresses();
-
-    const QString settingAutoScroll = "autoScroll";
-    const QString settingCrLf = "crlf";
-    const QString settingDisplayModeText = "displayModeText";
-    const QString settingDisplayModeHex = "displayModeHex";
-    const QString settingHexSpecial = "hexSpecial";
-    const QString settingShowCrLfHex = "showCrLfHex";
-    const QString settingNewlineForCrLf = "newlineForCrLf";
-    const QString settingTabWidth = "tabWidth";
-    const QString settingShowDuck = "showDuck";
-    const QString settingReplaceEscapeSequences = "replaceEscapeSequences";
-    const QString settingShowSentData = "showSentData";
-    const QString settingSentDataOnSeparateLine = "sentDataOnSeparateLine";
-    const QString settingTcpServerPort = "tcpServerPort";
-    const QString settingTcpClientIp = "tcpClientIp";
-    const QString settingTcpClientPort = "tcpClientPort";
-    const QString settingUdpBindForListen = "udpBindForListen";
-    const QString settingUdpBindPort = "udpBindPort";
-    const QString settingUdpSendBroadcast = "udpSendBroadcast";
-    const QString settingUdpSendIp = "udpSendIp";
-    const QString settingUdpSendPort = "udpSendPort";
-    const QString settingSendFilePath = "sendFilePath";
-    const QString settingSendFileFrequencyMs = "sendFileFrequencyMs";
-    const QString settingSendFileExcludeEndingNewline = "sendFileExcludeEndingNewline";
-    const QString settingSendFileSendMsgIfFileEmpty = "sendFileSendMsgIfFileEmpty";
-    const QString settingSendFileMsgIfEmpty = "sendFileMsgIfEmpty";
-    const QString settingTimestampsEnabled = "timestampsEnabled";
-    const QString settingTimestampsOnlyAfterNewlines = "timestampsOnlyAfterNewlines";
-    const QString settingTimestampGroupTimeMs = "timestampGroupTimeMs";
-    const QString settingTimestampAddTabAfter = "timestampAddTabAfter";
-    const QString settingMacrosSendCrlf = "macrosSendCrlf";
-    const QString settingMacrosArray = "macros";
-    const QString settingMacroValue = "macroValue";
-    const QString settingConsoleFontPointSize = "consoleFontPointSize";
-
 };
 
 #endif // MAINWINDOW_H

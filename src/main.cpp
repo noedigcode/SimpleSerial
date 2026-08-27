@@ -19,10 +19,12 @@
  *****************************************************************************/
 
 #include "mainwindow.h"
+#include "settings.h"
 #include "version.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QStyleFactory>
 
 #include <iostream>
 
@@ -45,9 +47,14 @@ int main(int argc, char *argv[])
 {
     printVersion();
 
+    #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    #endif
 
     QApplication a(argc, argv);
+
+    QString defaultStyle = MainWindow::getDefaultGuiStyle(&a);
+
     QApplication::setApplicationName(APP_NAME);
     QApplication::setApplicationVersion(APP_VERSION);
 
@@ -59,6 +66,12 @@ int main(int argc, char *argv[])
 
     QCommandLineOption versionOption({"v", "version"}, "Display version information");
     parser.addOption(versionOption);
+
+    QString styleOptionText =
+        QString("GUI style. Available styles on this PC: %1. Default: %2.")
+            .arg(QStyleFactory::keys().join(", ")).arg(defaultStyle);
+    QCommandLineOption styleOption("guistyle", styleOptionText, "guistyle", "");
+    parser.addOption(styleOption);
 
     QCommandLineOption serialPortOption({"s", "serial"}, "Serial port to open", "serial");
     parser.addOption(serialPortOption);
@@ -175,6 +188,33 @@ int main(int argc, char *argv[])
         mwOptions.stopBits = stopBits.value(stopBitsOptionValue);
     } else {
         print("Invalid value for stop bits: " + stopBitsOptionValue + ", expected one of: " + stopBits.keys().join(", "));
+    }
+
+    // GUI style
+    // Command line argument takes precedence. Next, settings.
+    // If there is no command line style provided and none is stored in settings,
+    // use the default. Prefer windowsvista for default, but if it doesn't exist
+    // on this system, do not set the style.
+    QString style = parser.value(styleOption.valueName());
+    if (!style.isEmpty()) {
+        if (QStyleFactory::keys().contains(style, Qt::CaseInsensitive)) {
+            print("Setting GUI style to value provided on command line: " + style);
+        } else {
+            print("GUI style provided on command line does not exist: " + style);
+            print("Available styles: " + QStyleFactory::keys().join(", "));
+            // Set empty as if no sytle was specified so default will be used below
+            style = "";
+        }
+    }
+    if (style.isEmpty()) {
+        SimpleSerialSettings settings;
+        style = settings.guiStyle->getOrDefault("").toString();
+    }
+    if (style.isEmpty()) {
+        style = defaultStyle;
+    }
+    if (style != a.style()->objectName()) {
+        a.setStyle(QStyleFactory::create(style));
     }
 
     // -------------------------------------------------------------------------

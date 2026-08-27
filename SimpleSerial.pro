@@ -34,7 +34,8 @@ SOURCES += \
     src/gidtcp.cpp \
     src/gidudp.cpp \
     src/mainwindow.cpp \
-    src/gidconsolewidget.cpp
+    src/gidconsolewidget.cpp \
+    src/settings.cpp
 
 HEADERS  += \
     src/mainwindow.h \
@@ -43,6 +44,7 @@ HEADERS  += \
     src/gidconsolewidget.h \
     src/gidtcp.h \
     src/gidudp.h \
+    src/settings.h \
     src/version.h
 
 FORMS    += \

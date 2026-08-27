@@ -71,7 +71,11 @@ void GidTcp::connectToServer(QHostAddress address, quint16 port)
             this, &GidTcp::clientConnected);
 
     connect(client->socket,
+        #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            &QTcpSocket::errorOccurred,
+        #else
             static_cast<void (QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),
+        #endif
             this, [=](QAbstractSocket::SocketError /*e*/)
     {
         emit clientConnectionError(client->socket->errorString());
