@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>564</width>
-    <height>522</height>
+    <width>584</width>
+    <height>641</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,7 +23,7 @@
       <pixmap resource="../icons/icons.qrc">:/abouticon</pixmap>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignmentFlag::AlignCenter</set>
      </property>
     </widget>
    </item>
@@ -41,7 +41,7 @@
       <string>%APP_NAME%</string>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignmentFlag::AlignCenter</set>
      </property>
     </widget>
    </item>
@@ -52,13 +52,15 @@
 A simple serial terminal app
 %YEAR_FROM%-%YEAR% Gideon van der Kolf
 
+Compiled with Qt %QT_VERSION%
+
 Icons from https://icons8.com
 
 Settings Path:
 %SETTINGS_PATH%</string>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignmentFlag::AlignCenter</set>
      </property>
      <property name="openExternalLinks">
       <bool>true</bool>
@@ -88,7 +90,7 @@ Settings Path:
      <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>

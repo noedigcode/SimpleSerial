@@ -46,6 +46,7 @@ AboutDialog::AboutDialog(QString settingsText, QWidget *parent) :
     text.replace("%VERSION%", APP_VERSION);
     text.replace("%YEAR_FROM%", APP_YEAR_FROM);
     text.replace("%YEAR%", APP_YEAR);
+    text.replace("%QT_VERSION%", QT_VERSION_STR);
     text.replace("%SETTINGS_PATH%", settingsText);
     ui->label_appInfo->setText(text);
 
