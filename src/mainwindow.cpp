@@ -56,24 +56,22 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
     ui->comboBox_send->setCompleter(0);
 
     loadGeneralSettings();
-    setupSerial();
-    setupNetwork();
 
     updateWindowTitle();
 
-    setCommsModeAndUpdateGui(CommsNone);
+    setMainCommsAndUpdateGui(nullptr);
 
     // Handle startup options
     if (!options.serialPort.isEmpty()) {
         printOnNewLine("Startup option: Open serial port: " + options.serialPort,
                        systemTextColor());
-        serial.setPort(options.serialPort);
-        serial.setBaudrate(options.baud);
-        serial.setParity(options.parity);
-        serial.setDataBits(options.dataBits);
-        serial.setStopBits(options.stopBits);
-        on_pushButton_startup_openSerialPort_clicked();
-        serial.open();
+        SerialCommsPtr s = createSerialComms();
+        s->serial.setPort(options.serialPort);
+        s->serial.setBaudrate(options.baud);
+        s->serial.setParity(options.parity);
+        s->serial.setDataBits(options.dataBits);
+        s->serial.setStopBits(options.stopBits);
+        s->serial.open();
     }
     if (!options.sendFilePath.isEmpty()) {
         printOnNewLine("Startup option: send file: " + options.sendFilePath,
@@ -109,7 +107,10 @@ QString MainWindow::getDefaultGuiStyle(QApplication *app)
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    serial.close();
+    for (const CommsPtr& c : allComms) {
+        c->close();
+    }
+
     event->accept();
 }
 
@@ -295,7 +296,7 @@ void MainWindow::printNetworkAddresses()
     }
     if (text.isEmpty()) { text = "No network interfaces"; }
 
-    printTcp(text);
+    print(text, systemTextColor());
 }
 
 void MainWindow::print(QString msg, QColor color)
@@ -530,11 +531,11 @@ QBrush MainWindow::sendBackground()
     return QBrush(QColor(0, 0, 255, 64));
 }
 
-void MainWindow::setCommsModeAndUpdateGui(CommsMode mode)
+void MainWindow::setMainCommsAndUpdateGui(CommsPtr comms)
 {
-    mCommsMode = mode;
+    mainComms = comms;
 
-    bool serial = (mode == CommsSerial);
+    bool serial = !qSharedPointerDynamicCast<SerialComms>(comms).isNull();
     ui->action_Re_Open_SerialPort->setVisible(serial);
     ui->action_Close_SerialPort->setVisible(serial);
     ui->action_Close_SerialPort_toolbar->setVisible(serial);
@@ -543,28 +544,102 @@ void MainWindow::setCommsModeAndUpdateGui(CommsMode mode)
     ui->action_Set_DTR_toolbar->setVisible(serial);
     ui->action_Set_RTS->setVisible(serial);
 
-    bool tcpServer = (mode == CommsTcpServer);
+    bool tcpServer = !qSharedPointerDynamicCast<TcpServerComms>(comms).isNull();
     ui->action_Restart_TCP_Server->setVisible(tcpServer);
     ui->action_Stop_TCP_Server->setVisible(tcpServer);
 
-    bool tcpClient = (mode == CommsTcpClient);
+    bool tcpClient = !qSharedPointerDynamicCast<TcpClientComms>(comms).isNull();
     ui->action_Reconnect_to_TCP_Server->setVisible(tcpClient);
     ui->action_Disconnect_from_TCP_Server->setVisible(tcpClient);
+
+    updateWindowTitle();
 }
 
-void MainWindow::onDataReceived(QByteArray data)
+void MainWindow::addComms(CommsPtr comms)
+{
+    if (!mainComms) {
+        setMainCommsAndUpdateGui(comms);
+        updateWindowTitle();
+    }
+    allComms.append(comms);
+
+    QTreeWidgetItem* item = new QTreeWidgetItem();
+    item->setText(0, comms->titleText());
+    ui->treeWidget_forward->addTopLevelItem(item);
+    treeCommsMap.insert(item, comms);
+
+    connect(comms.data(), &Comms::print,
+            this, [wkptr = comms.toWeakRef(), this](QString msg)
+    {
+        CommsPtr c(wkptr);
+        if (!c) { return; }
+        onCommsPrint(c, msg);
+    });
+    connect(comms.data(), &Comms::dataReceived,
+            this, [wkptr = comms.toWeakRef(), this](QByteArray data)
+    {
+        CommsPtr c(wkptr);
+        if (!c) { return; }
+        onDataReceived(c, data);
+    });
+
+    connect(comms.data(), &Comms::closed,
+            this, [wkptr = comms.toWeakRef(), this]()
+    {
+        CommsPtr c(wkptr);
+        if (!c) { return; }
+        onCommsChangeWindowTitle(c);
+    });
+
+    connect(comms.data(), &Comms::opened,
+            this, [wkptr = comms.toWeakRef(), this]()
+    {
+        CommsPtr c(wkptr);
+        if (!c) { return; }
+        onCommsChangeWindowTitle(c);
+    });
+    connect(comms.data(), &Comms::errorOccurred,
+            this, [wkptr = comms.toWeakRef(), this]()
+    {
+        CommsPtr c(wkptr);
+        if (!c) { return; }
+        onCommsChangeWindowTitle(c);
+    });
+}
+
+void MainWindow::closeAndRemove(CommsPtr comms)
+{
+    if (!comms) { return; }
+    comms->close();
+    if (mainComms == comms) {
+        setMainCommsAndUpdateGui(nullptr);
+    }
+    allComms.removeAll(comms);
+
+    QTreeWidgetItem* item = treeCommsMap.key(comms);
+    if (item) {
+        treeCommsMap.remove(item);
+        delete item; // Removes from tree widget
+    }
+}
+
+void MainWindow::updateDroppedBytesCounterLabel()
+{
+    ui->label_bytesDropped->setText(QString("%1").arg(numBytesDroppedFromDisplay));
+}
+
+void MainWindow::onDataReceived(CommsPtr comms, QByteArray data)
 {
     dataDisplay.processData(data, DataReceive);
-
-    // Display number of received bytes
-    numBytesRx += data.length();
-    updateCounterLabels();
 
     // Log raw data if enabled
     if (ui->radioButton_log_raw->isChecked()) {
         log(data);
     }
     flushLog();
+
+    // Forward to other comms
+    sendToAllExcept(comms, data, NoEscapeSequenceReplace, DoNotShowSentData);
 
     // Auto-reply
     if (ui->checkBox_AutoReply_Enable->isChecked()) {
@@ -577,294 +652,270 @@ void MainWindow::onDataReceived(QByteArray data)
                 // Received buffer matches rx lineedit in GUI. Send back msg.
                 QString tosend = ui->lineEdit_AutoReply_send->text();
                 tosend.append(crlfComboboxText(ui->comboBox_AutoReply_CRLF->currentIndex()));
-                sendData( tosend.toLocal8Bit() );
+                sendToOnly(comms, tosend.toLocal8Bit(), AllowEscapeSequenceReplace);
                 mAutoReplyBuffer.clear();
             }
         }
     }
+
+    updateCounterLabels(comms);
 }
 
-void MainWindow::sendData(QByteArray data, bool allowEscapeSequenceReplace)
+void MainWindow::onCommsChangeWindowTitle(CommsPtr comms)
 {
-    if (allowEscapeSequenceReplace) {
-        if (ui->checkBox_sending_replaceEscapeSequences->isChecked()) {
-            // Hex
-            static QByteArray hex("0123456789abcdef");
-            QByteArray tosend;
-            QByteArray lowerData = data.toLower();
-            QByteArray buffer; // Collect bytes to be converted to hex
-            int state = 0;
-            for (int i = 0; i < data.length(); i++) {
-                char c = data.at(i);
-                char clower = lowerData.at(i);
-                bool addChar = false; // Add current char to send data
-                bool addBuffer = false; // Add collected bytes to send data
-
-                if (state == 0) {
-                    // Wait for start of escape sequence.
-                    buffer.clear();
-                    if (c == '\\') {
-                        // Start of escape sequence
-                        state = 1;
-                    } else {
-                        // Not start of escape sequence. Send char.
-                        addChar = true;
-                    }
-                } else if (state == 1) {
-                    if (hex.contains(clower)) {
-                        // Hex character. Collect in buffer.
-                        buffer.append(c);
-                        state = 2;
-                    } else {
-                        // Cancel escape sequence. Also send collected buffer chars.
-                        addChar = true;
-                        addBuffer = true;
-                        state = 0;
-                    }
-                } else if (state == 2) {
-                    if (hex.contains(clower)) {
-                        // Hex character. Collect in buffer, convert to hex and send.
-                        buffer.append(c);
-                        tosend.append(buffer.toShort(nullptr, 16));
-                    } else {
-                        // Cancel escape sequence. Also send collected buffer chars.
-                        addChar = true;
-                        addBuffer = true;
-                    }
-                    // End of escape sequence. Reset to wait for next.
-                    state = 0;
-                }
-
-                if (addBuffer) {
-                    tosend.append("\\");
-                    tosend.append(buffer);
-                }
-                if (addChar) { tosend.append(c); }
-            }
-            data = tosend;
-            // Other escape sequences
-            data.replace(QByteArray("\\n"), QByteArray("\n"));
-            data.replace(QByteArray("\\r"), QByteArray("\r"));
-            data.replace(QByteArray("\\t"), QByteArray("\t"));
-            // NB: Do \0 after hex above so it doesn't interfere
-            data.replace(QByteArray("\\0"), QByteArray(1, '\0'));
-            data.replace(QByteArray("\\\\"), QByteArray("\\"));
-        }
+    QTreeWidgetItem* item = treeCommsMap.key(comms);
+    if (item) {
+        item->setText(0, comms->titleText());
     }
 
-    switch (mCommsMode) {
-    case MainWindow::CommsNone:
-        return;
-        break;
-    case MainWindow::CommsSerial:
-        sendSerial(data);
-        break;
-    case MainWindow::CommsTcpServer:
-        sendTcpServer(data);
-        break;
-    case MainWindow::CommsTcpClient:
-        sendTcpClient(data);
-        break;
-    case MainWindow::CommsUdp:
-        sendUdp(data);
-        break;
-    }
-
-    numBytesTx += data.length();
-    updateCounterLabels();
-
-    if (ui->checkBox_showSentDataInConsole->isChecked()) {
-        dataDisplay.processData(data, DataSend);
-    }
-
-    flushLog();
-}
-
-void MainWindow::setupSerial()
-{
-    // Serial settings
-    QMap<QString, QString> serialSettings = settings.getGroupKeyVals("serial");
-    serial.setSettings(serialSettings);
-
-    connect(&(serial.s), &QSerialPort::readyRead,
-            this, &MainWindow::onSerialReadyRead);
-    connect(&(serial.s), &QSerialPort::errorOccurred,
-            this, &MainWindow::onSerialError);
-    connect(&serial, &GidQt5Serial::print,
-            this, &MainWindow::printSerial);
-    connect(&serial, &GidQt5Serial::portOpened,
-            this, &MainWindow::onSerialPortOpened);
-    connect(&(serial.s), &QSerialPort::dataTerminalReadyChanged,
-            this, [=](bool set)
-    {
-        ui->action_Set_DTR->setChecked(set);
-        ui->action_Set_DTR_toolbar->setChecked(set);
-    });
-    connect(&(serial.s), &QSerialPort::requestToSendChanged,
-            this, [=](bool set)
-    {
-        ui->action_Set_RTS->setChecked(set);
-    });
-
-    serial.setWindowModality(Qt::ApplicationModal);
-    serial.setWindowTitle(QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
-    serial.resize(Utilities::scaleWithScreenScalingFactor(serial.screen(),
-                                                          serial.size()));
-}
-
-void MainWindow::sendSerial(QByteArray data)
-{
-    serial.s.write(data);
-}
-
-void MainWindow::closeSerialPort()
-{
-    if (serial.s.isOpen()) {
-        serial.s.close();
-        printSerial("Serial port closed.");
+    if (comms == mainComms) {
         updateWindowTitle();
     }
 }
 
-void MainWindow::updateCounterLabels()
+QByteArray MainWindow::replaceEscapeSequences(const QByteArray &data)
 {
-    ui->label_bytesRx->setText(QString::number(numBytesRx));
-    ui->label_bytesTx->setText(QString::number(numBytesTx));
+    // Hex
+    static QByteArray hex("0123456789abcdef");
+    QByteArray tosend;
+    QByteArray lowerData = data.toLower();
+    QByteArray buffer; // Collect bytes to be converted to hex
+    int state = 0;
+    for (int i = 0; i < data.length(); i++) {
+        char c = data.at(i);
+        char clower = lowerData.at(i);
+        bool addChar = false; // Add current char to send data
+        bool addBuffer = false; // Add collected bytes to send data
 
-    ui->label_bytesDropped->setText(QString("%1").arg(numBytesDroppedFromDisplay));
+        if (state == 0) {
+            // Wait for start of escape sequence.
+            buffer.clear();
+            if (c == '\\') {
+                // Start of escape sequence
+                state = 1;
+            } else {
+                // Not start of escape sequence. Send char.
+                addChar = true;
+            }
+        } else if (state == 1) {
+            if (hex.contains(clower)) {
+                // Hex character. Collect in buffer.
+                buffer.append(c);
+                state = 2;
+            } else {
+                // Cancel escape sequence. Also send collected buffer chars.
+                addChar = true;
+                addBuffer = true;
+                state = 0;
+            }
+        } else if (state == 2) {
+            if (hex.contains(clower)) {
+                // Hex character. Collect in buffer, convert to hex and send.
+                buffer.append(c);
+                tosend.append(buffer.toShort(nullptr, 16));
+            } else {
+                // Cancel escape sequence. Also send collected buffer chars.
+                addChar = true;
+                addBuffer = true;
+            }
+            // End of escape sequence. Reset to wait for next.
+            state = 0;
+        }
+
+        if (addBuffer) {
+            tosend.append("\\");
+            tosend.append(buffer);
+        }
+        if (addChar) { tosend.append(c); }
+    }
+
+    // Other escape sequences
+    tosend.replace(QByteArray("\\n"), QByteArray("\n"));
+    tosend.replace(QByteArray("\\r"), QByteArray("\r"));
+    tosend.replace(QByteArray("\\t"), QByteArray("\t"));
+    // NB: Do \0 after hex above so it doesn't interfere
+    tosend.replace(QByteArray("\\0"), QByteArray(1, '\0'));
+    tosend.replace(QByteArray("\\\\"), QByteArray("\\"));
+
+    return tosend;
+}
+
+void MainWindow::sendData(CommsPtr only, CommsPtr exclude, QByteArray data,
+                          SendEscSeqOption escSeqOption, SendShowOption sendShowOption)
+{
+    if (escSeqOption == AllowEscapeSequenceReplace) {
+        if (ui->checkBox_sending_replaceEscapeSequences->isChecked()) {
+            data = replaceEscapeSequences(data);
+        }
+    }
+
+    if (only) {
+        only->send(data);
+        updateCounterLabels(only);
+    } else {
+        for (const CommsPtr& c : std::as_const(allComms)) {
+            if (c == exclude) { continue; }
+            c->send(data);
+            updateCounterLabels(c);
+        }
+    }
+
+    if (sendShowOption == AllowShowingSentData) {
+        if (ui->checkBox_showSentDataInConsole->isChecked()) {
+            dataDisplay.processData(data, DataSend);
+        }
+    }
+
+    flushLog(); // TODO necessary here?
+}
+
+void MainWindow::onCommsPrint(CommsPtr comms, QString msg)
+{
+    QString tag;
+    if (allComms.count() > 1) {
+        tag = comms->tag();
+    }
+    QString text = QString("[%1%2%3] %4")
+            .arg(comms->type())
+            .arg(tag.isEmpty() ? "" : " - ")
+            .arg(tag)
+            .arg(msg);
+    print(text, systemTextColor());
+}
+
+SerialCommsPtr MainWindow::createSerialComms()
+{
+    SerialCommsPtr s = SerialCommsPtr::create(this);
+    addComms(s);
+
+    s->setTag(QString::number(allComms.count()));
+    s->setSettings(settings.getGroupKeyVals("serial"));
+    s->serial.setWindowModality(Qt::ApplicationModal);
+    s->serial.setWindowTitle(QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
+    s->serial.resize(Utilities::scaleWithScreenScalingFactor(
+                         s->serial.screen(), s->serial.size()));
+
+    // TODO Handle case where dialog is cancelled before serial port has ever
+    // been connected - SerialComms object must be deleted.
+    // connect(s->serial, &GidQt5Serial::dialogCancelled,
+    //         this, [=]()
+    // {
+
+    // });
+    connect(&(s->serial.s), &QSerialPort::dataTerminalReadyChanged,
+            this, [wptr = s.toWeakRef(), this](bool set)
+    {
+        SerialCommsPtr s(wptr);
+        if (!s) { return; }
+        onSerialDataTerminalReadyChanged(s, set);
+    });
+    connect(&(s->serial.s), &QSerialPort::requestToSendChanged,
+            this, [wptr = s.toWeakRef(), this](bool set)
+    {
+        SerialCommsPtr s(wptr);
+        if (!s) { return; }
+        onSerialRequestToSendChanged(s, set);
+    });
+
+    // Adding to GUI is deferred to the open signal when the dialog is shown
+    connect(&(s->serial), &GidQt5Serial::portOpened,
+            this, [wptr = s.toWeakRef(), this]()
+    {
+        SerialCommsPtr s(wptr);
+        if (!s) { return; }
+        onSerialPortOpened(s);
+    });
+
+    return s;
+}
+
+void MainWindow::sendToOnly(CommsPtr comms, QByteArray data,
+                            SendEscSeqOption escSeqOption)
+{
+    sendData(comms, nullptr, data, escSeqOption, AllowShowingSentData);
+}
+
+void MainWindow::sendToAllExcept(CommsPtr except, QByteArray data,
+                                 SendEscSeqOption escSeqOption,
+                                 SendShowOption sendShowOption)
+{
+    sendData(nullptr, except, data, escSeqOption, sendShowOption);
+}
+
+void MainWindow::sendToAll(QByteArray data, SendEscSeqOption escSeqOption)
+{
+    sendData(nullptr, nullptr, data, escSeqOption, AllowShowingSentData);
+}
+
+void MainWindow::updateCounterLabels(CommsPtr comms)
+{
+    if (comms == mainComms) {
+        ui->label_bytesRx->setText(QString::number(comms->rxByteCount()));
+        ui->label_bytesTx->setText(QString::number(comms->txByteCount()));
+    }
 }
 
 void MainWindow::sendMacro(QString text)
 {
     text += crlfComboboxText(ui->comboBox_macros_append->currentIndex());
-    sendData(text.toLocal8Bit());
+    sendToAll(text.toLocal8Bit(), AllowEscapeSequenceReplace);
 }
 
-void MainWindow::onSerialReadyRead()
+void MainWindow::onSerialPortOpened(SerialCommsPtr s)
 {
-    onDataReceived(serial.s.readAll());
-}
+    if (s == mainComms) {
+        // Save serial settings
+        settings.setGroupKeyVals("serial", s->getSettings());
 
-void MainWindow::onSerialError(QSerialPort::SerialPortError error)
-{
-    if (error == QSerialPort::NoError) { return; }
-    QString s = QVariant::fromValue(error).toString();
-    printSerial("Serial port error: " + s);
-}
-
-void MainWindow::onSerialPortOpened()
-{
-    setCommsModeAndUpdateGui(CommsSerial);
-    updateWindowTitle();
+        ui->action_Set_DTR->setChecked(s->serial.s.isDataTerminalReady());
+        ui->action_Set_DTR_toolbar->setChecked(s->serial.s.isDataTerminalReady());
+        ui->action_Set_RTS->setChecked(s->serial.s.isRequestToSend());
+    }
 
     focusAndSelectSendText();
-
-    // Save serial settings
-    settings.setGroupKeyVals("serial", serial.getSettings());
-
-    ui->action_Set_DTR->setChecked(serial.s.isDataTerminalReady());
-    ui->action_Set_DTR_toolbar->setChecked(serial.s.isDataTerminalReady());
-    ui->action_Set_RTS->setChecked(serial.s.isRequestToSend());
-
     showMainPage();
 }
 
-void MainWindow::setupNetwork()
+void MainWindow::onSerialDataTerminalReadyChanged(SerialCommsPtr s, bool set)
 {
-    // TCP
-    connect(&tcp, &GidTcp::print, this, &MainWindow::printTcp);
-    connect(&tcp, &GidTcp::dataReceived, this, &MainWindow::onTcpDataReceived);
-    connect(&tcp, &GidTcp::clientConnected,
-            this, &MainWindow::onTcpClientConnectedToServer);
-    connect(&tcp, &GidTcp::clientDisconnected,
-            this, &MainWindow::onTcpClientDisconnected);
-    connect(&tcp, &GidTcp::clientConnectionError,
-            this, &MainWindow::onTcpClientError);
-
-    // UDP
-    connect(&udp, &GidUdp::print, this, &MainWindow::printUdp);
-    connect(&udp, &GidUdp::rxMessage, this, &MainWindow::onUdpDataReceived);
-}
-
-void MainWindow::sendTcpServer(QByteArray data)
-{
-    tcp.sendMsgToAllClients(data);
-}
-
-void MainWindow::sendTcpClient(QByteArray data)
-{
-    tcp.sendMsg(data);
-}
-
-void MainWindow::stopTcpServer()
-{
-    if (tcp.isServerListening()) {
-        tcp.stopTcpServer();
-        printTcp("TCP server stopped.");
-        updateWindowTitle();
+    if (s == mainComms) {
+        ui->action_Set_DTR->setChecked(set);
+        ui->action_Set_DTR_toolbar->setChecked(set);
     }
 }
 
-void MainWindow::disconnectFromTcpServer()
+void MainWindow::onSerialRequestToSendChanged(SerialCommsPtr s, bool set)
 {
-    tcp.disconnectFromServer();
-}
-
-void MainWindow::printTcp(QString msg)
-{
-    printOnNewLine("[tcp] " + msg, systemTextColor());
-}
-
-void MainWindow::onTcpDataReceived(GidTcp::ConPtr /*con*/, QByteArray data)
-{
-    onDataReceived(data);
-}
-
-void MainWindow::onTcpClientConnectedToServer()
-{
-    printTcp("Connected to TCP server.");
-    updateWindowTitle();
-}
-
-void MainWindow::onTcpClientError(QString errorString)
-{
-    printTcp("TCP client error: " + errorString);
-    updateWindowTitle();
-}
-
-void MainWindow::onTcpClientDisconnected()
-{
-    printTcp("Disconnected from TCP server.");
-    updateWindowTitle();
-}
-
-void MainWindow::sendUdp(QByteArray data)
-{
-    QHostAddress a;
-    if (mUdpSendBroadcast) {
-        a = QHostAddress::Broadcast;
-    } else {
-        a = QHostAddress(mUdpSendIp);
+    if (s == mainComms) {
+        ui->action_Set_RTS->setChecked(set);
     }
-
-    udp.sendMessage(data, a, mUdpSendPort);
 }
 
-void MainWindow::stopUdp()
+TcpClientCommsPtr MainWindow::createTcpClientComms()
 {
-    udp.stopUdp();
-    updateWindowTitle();
+    TcpClientCommsPtr tcp = TcpClientCommsPtr::create(this);
+
+    tcp->setTag(QString::number(allComms.count()));
+
+    return tcp;
 }
 
-void MainWindow::printUdp(QString msg)
+TcpServerCommsPtr MainWindow::createTcpServerComms()
 {
-    printOnNewLine("[udp] " + msg, systemTextColor());
+    TcpServerCommsPtr tcp = TcpServerCommsPtr::create(this);
+
+    tcp->setTag(QString::number(allComms.count()));
+
+    return tcp;
 }
 
-void MainWindow::onUdpDataReceived(QByteArray msg, QHostAddress /*address*/,
-                                   quint16 /*port*/)
+UdpCommsPtr MainWindow::createUdpComms()
 {
-    onDataReceived(msg);
+    UdpCommsPtr udp = UdpCommsPtr::create(this);
+
+    udp->setTag(QString::number(allComms.count()));
+
+    return udp;
 }
 
 void MainWindow::log(QByteArray data)
@@ -914,16 +965,11 @@ void MainWindow::onConsoleZoomChanged()
     settings.consoleFontPointSize->set(ui->console->getFontPointSize());
 }
 
-void MainWindow::printSerial(QString msg)
-{
-    printOnNewLine("[serial] " + msg, systemTextColor());
-}
-
 void MainWindow::on_pushButton_Send_clicked()
 {
     QString origText = ui->comboBox_send->currentText();
     QString tosend = origText + crlfComboboxText(ui->comboBox_SendCRLF->currentIndex());
-    sendData(tosend.toLocal8Bit());
+    sendToAll(tosend.toLocal8Bit(), AllowEscapeSequenceReplace);
 
     // Add text to combo box (original text without CR/LF added)
     // But don't add it again if it's the same as the last sent one
@@ -973,17 +1019,23 @@ void MainWindow::on_actionClear_triggered()
 
 void MainWindow::on_action_Re_Open_SerialPort_triggered()
 {
-    serial.reOpen();
+    if (auto s = qSharedPointerDynamicCast<SerialComms>(mainComms)) {
+        s->serial.reOpen();
+    }
 }
 
 void MainWindow::on_action_Close_SerialPort_triggered()
 {
-    closeSerialPort();
+    if (auto s = qSharedPointerDynamicCast<SerialComms>(mainComms)) {
+        s->close();
+    }
 }
 
 void MainWindow::on_action_Close_SerialPort_toolbar_triggered()
 {
-    closeSerialPort();
+    if (auto s = qSharedPointerDynamicCast<SerialComms>(mainComms)) {
+        s->close();
+    }
 }
 
 void MainWindow::on_actionAuto_Scroll_changed()
@@ -993,10 +1045,13 @@ void MainWindow::on_actionAuto_Scroll_changed()
 
 void MainWindow::on_pushButton_clearCounters_clicked()
 {
-    numBytesRx = 0;
+    if (mainComms) {
+        mainComms->clearCounters();
+        updateCounterLabels(mainComms);
+    }
+
     numBytesDroppedFromDisplay = 0;
-    numBytesTx = 0;
-    updateCounterLabels();
+    updateDroppedBytesCounterLabel();
 }
 
 void MainWindow::on_actionSet_Window_Title_triggered()
@@ -1156,33 +1211,8 @@ void MainWindow::updateWindowTitle()
         setWindowTitle(userWindowTitle);
     } else {
         QString title;
-        if (mCommsMode == CommsSerial) {
-            if (serial.s.isOpen()) {
-                title = QString("%1 (%2)")
-                        .arg(serial.s.portName())
-                        .arg(serial.s.baudRate());
-            } else {
-                title = QString("%1 (Closed)")
-                        .arg(serial.s.portName());
-            }
-        } else if (mCommsMode == CommsTcpServer) {
-            title = QString("TCP Server (%1)")
-                    .arg(ui->lineEdit_tcpServer_port->text());
-            if (!tcp.isServerListening()) {
-                title += " (Closed)";
-            }
-        } else if (mCommsMode == CommsTcpClient) {
-            title = QString("TCP Client (%1:%2)")
-                    .arg(ui->lineEdit_tcpClient_ipAddress->text())
-                    .arg(ui->lineEdit_tcpClient_port->text());
-            if (!tcp.isConnectedToServer()) {
-                title += " (Closed)";
-            }
-        } else if (mCommsMode == CommsUdp) {
-            title = "UDP";
-            if (ui->checkBox_udp_bindForListening->isChecked()) {
-                title += QString(" (%1)").arg(ui->lineEdit_udp_listenPort->text());
-            }
+        if (mainComms) {
+            title = mainComms->titleText();
         }
         if (!title.isEmpty()) {
             title += " - ";
@@ -1190,14 +1220,21 @@ void MainWindow::updateWindowTitle()
         title += QString("%1 %2").arg(APP_NAME).arg(APP_VERSION);
         setWindowTitle(title);
     }
-
 }
 
 void MainWindow::showStartupPage()
 {
+    ui->pushButton_startupCancel->setVisible(false);
+
     ui->stackedWidget->setCurrentWidget(ui->page_startup);
     ui->mainToolBar->setVisible(false);
     ui->pushButton_startup_openSerialPort->setFocus();
+}
+
+void MainWindow::showAddConnectionPage()
+{
+    showStartupPage();
+    ui->pushButton_startupCancel->setVisible(true);
 }
 
 void MainWindow::showMainPage()
@@ -1231,13 +1268,20 @@ QString MainWindow::crlfComboboxText(int index)
 
 void MainWindow::on_pushButton_startup_openSerialPort_clicked()
 {
-    on_action_Open_Serial_Port_triggered();
+    SerialCommsPtr s = createSerialComms();
+
+    s->serial.refreshSerialPortList();
+    s->serial.show();
 }
 
 void MainWindow::on_action_Open_Serial_Port_triggered()
 {
-    serial.refreshSerialPortList();
-    serial.show();
+    closeAndRemove(mainComms);
+
+    SerialCommsPtr s = createSerialComms();
+
+    s->serial.refreshSerialPortList();
+    s->serial.show();
 }
 
 void MainWindow::on_pushButton_startup_tcpServer_clicked()
@@ -1269,11 +1313,12 @@ void MainWindow::on_pushButton_tcpServer_start_clicked()
     int port = ui->lineEdit_tcpServer_port->text().toInt(&ok);
     if (!ok) { return; }
 
-    if (tcp.setupTcpServer(port)) {
+    TcpServerCommsPtr tcp = createTcpServerComms();
+    addComms(tcp);
+
+    if (tcp->startTcpServer(port)) {
         printNetworkAddresses();
     }
-    setCommsModeAndUpdateGui(CommsTcpServer);
-    updateWindowTitle();
 
     showMainPage();
 }
@@ -1287,9 +1332,10 @@ void MainWindow::on_pushButton_tcpClient_connect_clicked()
     int port = ui->lineEdit_tcpClient_port->text().toInt(&ok);
     if (!ok) { return; }
 
-    tcp.connectToServer(QHostAddress(ip), port);
-    setCommsModeAndUpdateGui(CommsTcpClient);
-    updateWindowTitle();
+    TcpClientCommsPtr tcp = createTcpClientComms();
+    addComms(tcp);
+
+    tcp->connectToServer(QHostAddress(ip), port);
 
     showMainPage();
 }
@@ -1302,20 +1348,19 @@ void MainWindow::on_pushButton_udp_start_clicked()
     int listenPort = ui->lineEdit_udp_listenPort->text().toInt(&ok);
     if (!ok) { return; }
 
-    mUdpSendPort = ui->lineEdit_udp_sendPort->text().toInt(&ok);
+    int sendPort = ui->lineEdit_udp_sendPort->text().toInt(&ok);
     if (!ok) { return; }
 
-    // Bind to port for listening
-    if (ui->checkBox_udp_bindForListening->isChecked()) {
-        udp.setupUdp(listenPort);
-    }
+    bool listen = ui->checkBox_udp_bindForListening->isChecked();
+    bool broadcast = ui->checkBox_udp_broadcast->isChecked();
+    QString ip = ui->lineEdit_udp_sendIpAddress->text();
 
-    // Setup sending
-    mUdpSendBroadcast = ui->checkBox_udp_broadcast->isChecked();
-    mUdpSendIp = ui->lineEdit_udp_sendIpAddress->text();
+    UdpCommsPtr udp = createUdpComms();
+    addComms(udp);
 
-    setCommsModeAndUpdateGui(CommsUdp);
-    printUdp("UDP mode initialised");
+    udp->start(listen, listenPort, broadcast, ip, sendPort);
+
+    print("UDP mode initialised", systemTextColor());
     updateWindowTitle();
 
     showMainPage();
@@ -1338,37 +1383,30 @@ void MainWindow::on_pushButton_udp_cancel_clicked()
 
 void MainWindow::on_action_New_Connection_triggered()
 {
-    // Close all current connections
-    closeSerialPort();
-    stopTcpServer();
-    disconnectFromTcpServer();
-    stopUdp();
-
-    setCommsModeAndUpdateGui(CommsNone);
-    updateWindowTitle();
+    closeAndRemove(mainComms);
 
     showStartupPage();
 }
 
 void MainWindow::on_action_Stop_TCP_Server_triggered()
 {
-    stopTcpServer();
+    closeAndRemove(mainComms);
 }
 
 void MainWindow::on_action_Restart_TCP_Server_triggered()
 {
-    stopTcpServer();
+    closeAndRemove(mainComms);
     on_pushButton_tcpServer_start_clicked();
 }
 
 void MainWindow::on_action_Disconnect_from_TCP_Server_triggered()
 {
-    disconnectFromTcpServer();
+    closeAndRemove(mainComms);
 }
 
 void MainWindow::on_action_Reconnect_to_TCP_Server_triggered()
 {
-    disconnectFromTcpServer();
+    closeAndRemove(mainComms);
     on_pushButton_tcpClient_connect_clicked();
 }
 
@@ -1531,14 +1569,14 @@ void MainWindow::onTimedMsgTimer()
 
     if (ui->radioButton_TimedMsgs_sendInt->isChecked()) {
         QString msg = QString("%1 %2").arg(i).arg(newline);
-        sendData( msg.toLocal8Bit() );
+        sendToAll(msg.toLocal8Bit(), AllowEscapeSequenceReplace);
         i++;
         if (i>100) {
             i = 0;
         }
     } else {
         QString msg = ui->lineEdit_TimedMsgs_msg->text() + newline;
-        sendData( msg.toLocal8Bit() );
+        sendToAll(msg.toLocal8Bit(), AllowEscapeSequenceReplace);
     }
 }
 
@@ -1569,7 +1607,7 @@ void MainWindow::onSendFileTimer()
     if (!data.isEmpty()) {
         // If data not empty, send as-is with no escape sequence replacement to
         // respect file content.
-        sendData(data, false);
+        sendToAll(data, NoEscapeSequenceReplace);
     } else {
         // If data empty (either file empty or could not be loaded), send
         // preset message if setting set
@@ -1577,7 +1615,7 @@ void MainWindow::onSendFileTimer()
             data = ui->lineEdit_sendFile_msgIfEmpty->text().toUtf8();
             if (!data.isEmpty()) {
                 // Allow escape sequence replacement
-                sendData(data);
+                sendToAll(data, AllowEscapeSequenceReplace);
             }
         }
     }
@@ -1674,7 +1712,7 @@ void MainWindow::DataDisplayProcessor::processNext()
         txbuffer.remove(0, dropTx);
         rxbuffer.remove(0, dropRx);
         mainWindow->numBytesDroppedFromDisplay += drop;
-        mainWindow->updateCounterLabels();
+        mainWindow->updateDroppedBytesCounterLabel();
     }
 
     // Update GUI information
@@ -1703,17 +1741,23 @@ void MainWindow::DataDisplayProcessor::processNext()
 
 void MainWindow::on_action_Set_DTR_toggled(bool set)
 {
-    serial.s.setDataTerminalReady(set);
+    if (auto s = qSharedPointerDynamicCast<SerialComms>(mainComms)) {
+        s->serial.s.setDataTerminalReady(set);
+    }
 }
 
 void MainWindow::on_action_Set_DTR_toolbar_toggled(bool set)
 {
-    serial.s.setDataTerminalReady(set);
+    if (auto s = qSharedPointerDynamicCast<SerialComms>(mainComms)) {
+        s->serial.s.setDataTerminalReady(set);
+    }
 }
 
 void MainWindow::on_action_Set_RTS_toggled(bool set)
 {
-    serial.s.setRequestToSend(set);
+    if (auto s = qSharedPointerDynamicCast<SerialComms>(mainComms)) {
+        s->serial.s.setRequestToSend(set);
+    }
 }
 
 void MainWindow::on_comboBox_macros_append_currentIndexChanged(int index)
@@ -1751,5 +1795,15 @@ void MainWindow::on_spinBox_tabWidth_valueChanged(int value)
 void MainWindow::on_checkBox_showDuck_toggled(bool checked)
 {
     ui->console->enableTextMovementMarker(checked);
+}
+
+void MainWindow::on_pushButton_forward_add_clicked()
+{
+    showAddConnectionPage();
+}
+
+void MainWindow::on_pushButton_startupCancel_clicked()
+{
+    showMainPage();
 }
 
