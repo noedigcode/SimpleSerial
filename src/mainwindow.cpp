@@ -38,8 +38,6 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
     ui->spinBox_maxProcessTimeMs->setValue(dataDisplay.allowedMs);
     ui->spinBox_displayBacklogLengthMs->setValue(dataDisplay.displayBacklogLengthMs);
 
-    updateMacroGuiButtonsEnabled();
-
     showStartupPage();
 
     onToolsVisibilityChanged();
@@ -48,16 +46,26 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
     ui->tabWidget_options->setCurrentWidget(ui->tab_displayMode);
 
     ui->comboBox_send->installEventFilter(this);
+    ui->treeWidget_forward->installEventFilter(this);
+
     ui->console->installEventFilter(this);
     connect(ui->console, &GidConsoleWidget::fontPointSizeChanged,
             this, &MainWindow::onConsoleZoomChanged);
+
+    setWidgetsEnabledOnItemSelected(ui->treeWidget_forward,
+                                    {ui->pushButton_forward_close,
+                                     ui->pushButton_forward_remove,
+                                     ui->pushButton_forward_reOpen});
+
+    setWidgetsEnabledOnItemSelected(ui->listWidget_macros,
+                                    {ui->pushButton_macros_edit,
+                                     ui->pushButton_macros_remove,
+                                     ui->pushButton_macros_send});
 
     // Disable combo box auto-complete
     ui->comboBox_send->setCompleter(0);
 
     loadGeneralSettings();
-
-    updateWindowTitle();
 
     setMainCommsAndUpdateGui(nullptr);
 
@@ -172,6 +180,19 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
             }
         }
 
+    } else if (watched == ui->treeWidget_forward) {
+
+        if (event->type() == QEvent::Show) {
+            watched->removeEventFilter(this);
+            // Set initial forward tree widget column widths.
+            // Do on first time the widget is actually shown. Normally it is
+            // still hidden when MainWindow is shown.
+            int widgetHalf = ui->treeWidget_forward->viewport()->width() / 2;
+            ui->treeWidget_forward->header()->resizeSection(0, widgetHalf);
+            ui->treeWidget_forward->header()->resizeSection(1, widgetHalf / 2);
+            ui->treeWidget_forward->header()->resizeSection(2, widgetHalf / 2);
+        }
+
     } else {
         // Pass the event on to the parent class
         ret = QMainWindow::eventFilter(watched, event);
@@ -243,6 +264,40 @@ void MainWindow::initSpinBox(Settings::SettingPtr setting, QSpinBox* spinBox)
     });
 }
 
+void MainWindow::setWidgetsEnabledOnItemSelected(QTreeWidget *tw,
+                                                 QList<QWidget *> toEnable)
+{
+    auto doEnables = [=](QTreeWidgetItem* current, QTreeWidgetItem* /*previous*/)
+    {
+        bool en = (current != nullptr);
+        for (QWidget* widget : std::as_const(toEnable)) {
+            widget->setEnabled(en);
+        }
+    };
+
+    connect(tw, &QTreeWidget::currentItemChanged, this, doEnables);
+
+    // Also run now to take effect immediately
+    doEnables(nullptr, nullptr);
+}
+
+void MainWindow::setWidgetsEnabledOnItemSelected(QListWidget *lw,
+                                                 QList<QWidget *> toEnable)
+{
+    auto doEnables = [=](QListWidgetItem* current, QListWidgetItem* /*previous*/)
+    {
+        bool en = (current != nullptr);
+        for (QWidget* widget : std::as_const(toEnable)) {
+            widget->setEnabled(en);
+        }
+    };
+
+    connect(lw, &QListWidget::currentItemChanged, this, doEnables);
+
+    // Also run now to take effect immediately
+    doEnables(nullptr, nullptr);
+}
+
 void MainWindow::readMacrosFromSettings()
 {
     const Settings::KeyValList macros = settings.macros->get();
@@ -265,17 +320,6 @@ void MainWindow::saveMacrosToSettings()
     }
 
     settings.macros->set(macros);
-}
-
-void MainWindow::updateMacroGuiButtonsEnabled()
-{
-    // Enable/disable macro buttons based on whether a macro is selected in the list
-
-    bool enable = (ui->listWidget_macros->currentItem() != nullptr);
-
-    ui->pushButton_macros_edit->setEnabled(enable);
-    ui->pushButton_macros_remove->setEnabled(enable);
-    ui->pushButton_macros_send->setEnabled(enable);
 }
 
 void MainWindow::printNetworkAddresses()
@@ -795,13 +839,19 @@ SerialCommsPtr MainWindow::createSerialComms()
     s->serial.resize(Utilities::scaleWithScreenScalingFactor(
                          s->serial.screen(), s->serial.size()));
 
-    // TODO Handle case where dialog is cancelled before serial port has ever
-    // been connected - SerialComms object must be deleted.
-    // connect(s->serial, &GidQt5Serial::dialogCancelled,
-    //         this, [=]()
-    // {
+    connect(&(s->serial), &GidQt5Serial::dialogCancelled,
+            this, [wptr = s.toWeakRef(), this]()
+    {
+        SerialCommsPtr s(wptr);
+        if (!s) { return; }
+        // If port has not been opened before, remove the SerialComms.
+        if (!s->wasOpenBefore()) {
+            closeAndRemove(s);
+        }
+    }, Qt::QueuedConnection); // Use queued connection to ensure this runs
+                              // after the sender object function that emitted
+                              // the signal has finished.
 
-    // });
     connect(&(s->serial.s), &QSerialPort::dataTerminalReadyChanged,
             this, [wptr = s.toWeakRef(), this](bool set)
     {
@@ -1224,21 +1274,21 @@ void MainWindow::updateWindowTitle()
 
 void MainWindow::showStartupPage()
 {
-    ui->pushButton_startupCancel->setVisible(false);
+    ui->pushButton_startupCancel->setVisible(!mStartupNoCancelButton);
 
     ui->stackedWidget->setCurrentWidget(ui->page_startup);
     ui->mainToolBar->setVisible(false);
     ui->pushButton_startup_openSerialPort->setFocus();
 }
 
-void MainWindow::showAddConnectionPage()
-{
-    showStartupPage();
-    ui->pushButton_startupCancel->setVisible(true);
-}
-
 void MainWindow::showMainPage()
 {
+    // From now on, show cancel button any time we visit the startup page again.
+    // This allows cancelling adding of new connections, as well as going back
+    // to view the console when we wanted to replace the main connection but had
+    // second thoughts.
+    mStartupNoCancelButton = false;
+
     ui->stackedWidget->setCurrentWidget(ui->page_main);
     ui->mainToolBar->setVisible(true);
 }
@@ -1765,12 +1815,6 @@ void MainWindow::on_comboBox_macros_append_currentIndexChanged(int index)
     settings.macrosSendCrlf->set(index);
 }
 
-void MainWindow::on_listWidget_macros_currentItemChanged(QListWidgetItem* /*current*/,
-                                                         QListWidgetItem* /*previous*/)
-{
-    updateMacroGuiButtonsEnabled();
-}
-
 void MainWindow::on_lineEdit_tcpServer_port_returnPressed()
 {
     on_pushButton_tcpServer_start_clicked();
@@ -1799,11 +1843,60 @@ void MainWindow::on_checkBox_showDuck_toggled(bool checked)
 
 void MainWindow::on_pushButton_forward_add_clicked()
 {
-    showAddConnectionPage();
+    showStartupPage();
 }
 
 void MainWindow::on_pushButton_startupCancel_clicked()
 {
     showMainPage();
+}
+
+void MainWindow::on_pushButton_forward_close_clicked()
+{
+    QTreeWidgetItem* item = ui->treeWidget_forward->currentItem();
+    if (!item) { return; }
+
+    CommsPtr c = treeCommsMap.value(item);
+    if (!c) { return; }
+
+    c->close();
+}
+
+void MainWindow::on_pushButton_forward_reOpen_clicked()
+{
+    QTreeWidgetItem* item = ui->treeWidget_forward->currentItem();
+    if (!item) { return; }
+
+    CommsPtr c = treeCommsMap.value(item);
+    if (!c) { return; }
+
+    if (auto s = qSharedPointerDynamicCast<SerialComms>(c)) {
+
+        s->reOpen();
+
+    } else if (auto tcp = qSharedPointerDynamicCast<TcpServerComms>(c)) {
+
+        tcp->restart();
+
+    } else if (auto tcp = qSharedPointerDynamicCast<TcpClientComms>(c)) {
+
+        tcp->reConnect();
+
+    } else if (auto udp = qSharedPointerDynamicCast<UdpComms>(c)) {
+
+        udp->restart();
+
+    }
+}
+
+void MainWindow::on_pushButton_forward_remove_clicked()
+{
+    QTreeWidgetItem* item = ui->treeWidget_forward->currentItem();
+    if (!item) { return; }
+
+    CommsPtr c = treeCommsMap.value(item);
+    if (!c) { return; }
+
+    closeAndRemove(c);
 }
 

@@ -53,6 +53,7 @@ public:
     QList<ConPtr> serverConnections();
 
     static QString ipString(QHostAddress a);
+    QString errorString();
 
 signals:
     void print(QString msg);

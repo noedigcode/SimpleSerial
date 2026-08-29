@@ -131,6 +131,15 @@ QString GidTcp::ipString(QHostAddress a)
     return ret;
 }
 
+QString GidTcp::errorString()
+{
+    if (client) {
+        return client->socket->errorString();
+    } else {
+        return tcpServer.errorString();
+    }
+}
+
 void GidTcp::onServerNewTcpConnection()
 {
     while (tcpServer.hasPendingConnections()) {

@@ -149,8 +149,17 @@ public:
     {
         return serial.getSettings();
     }
+    bool wasOpenBefore()
+    {
+        return mWasOpenBefore;
+    }
+    void reOpen()
+    {
+        serial.reOpen();
+    }
     GidQt5Serial serial;
 private:
+    bool mWasOpenBefore = false;
     void setupSerial()
     {
         connect(&(serial.s), &QSerialPort::readyRead,
@@ -160,7 +169,7 @@ private:
         connect(&serial, &GidQt5Serial::print,
                 this, &SerialComms::print);
         connect(&serial, &GidQt5Serial::portOpened,
-                this, &Comms::opened);
+                this, &SerialComms::onPortOpened);
     }
     void doSend(const QByteArray& data) override
     {
@@ -169,6 +178,11 @@ private:
     }
 
 private slots:
+    void onPortOpened()
+    {
+        mWasOpenBefore = true;
+        emit Comms::opened();
+    }
     void onSerialReadyRead()
     {
         Comms::onReceive(serial.s.readAll());
@@ -218,7 +232,17 @@ public:
     bool startTcpServer(quint16 port)
     {
         mPort = port;
-        return tcp.setupTcpServer(port);
+        bool ok = tcp.setupTcpServer(port);
+        if (ok) {
+            emit Comms::opened();
+        } else {
+            emit Comms::errorOccurred(tcp.errorString());
+        }
+        return ok;
+    }
+    bool restart()
+    {
+        return startTcpServer(mPort);
     }
 
 protected:
@@ -276,6 +300,10 @@ public:
         mIpAddress = address.toString();
         mPort = port;
         tcp.connectToServer(address, port);
+    }
+    void reConnect()
+    {
+        connectToServer(QHostAddress(mIpAddress), mPort);
     }
 
 protected:
@@ -361,6 +389,10 @@ public:
             udp.setupUdp(listenPort);
         }
     }
+    void restart()
+    {
+        start(mListen, mListenPort, mUdpSendBroadcast, mUdpSendIp, mUdpSendPort);
+    }
 
 protected:
     GidUdp udp;
@@ -439,8 +471,8 @@ private:
 
     AboutDialog* aboutDialog = nullptr;
 
+    bool mStartupNoCancelButton = true;
     void showStartupPage();
-    void showAddConnectionPage();
     void showMainPage();
 
     QString crlfComboboxText(int index);
@@ -557,7 +589,6 @@ private:
     void sendMacro(QString text);
     void readMacrosFromSettings();
     void saveMacrosToSettings();
-    void updateMacroGuiButtonsEnabled();
 private slots:
     void on_pushButton_macros_send_clicked();
     void on_pushButton_macros_add_clicked();
@@ -566,7 +597,6 @@ private slots:
     void on_pushButton_macros_addMultiple_clicked();
     void on_listWidget_macros_itemDoubleClicked(QListWidgetItem *item);
     void on_comboBox_macros_append_currentIndexChanged(int index);
-    void on_listWidget_macros_currentItemChanged(QListWidgetItem *current, QListWidgetItem *previous);
 
 private slots:
     void onConsoleZoomChanged();
@@ -638,6 +668,12 @@ private slots:
 
     void on_pushButton_startupCancel_clicked();
 
+    void on_pushButton_forward_close_clicked();
+
+    void on_pushButton_forward_reOpen_clicked();
+
+    void on_pushButton_forward_remove_clicked();
+
 private:
     QBasicTimer timedMsgTimer;
     void onTimedMsgTimer();
@@ -660,6 +696,9 @@ private:
     void initCheckableSetting(Settings::SettingPtr setting, QAbstractButton* widget);
     void initLineEditSetting(Settings::SettingPtr setting, QLineEdit* lineEdit);
     void initSpinBox(Settings::SettingPtr setting, QSpinBox* spinBox);
+
+    void setWidgetsEnabledOnItemSelected(QTreeWidget* tw, QList<QWidget*> toEnable);
+    void setWidgetsEnabledOnItemSelected(QListWidget* lw, QList<QWidget*> toEnable);
 
     void printNetworkAddresses();
 };
