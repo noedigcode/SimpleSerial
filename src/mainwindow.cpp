@@ -667,6 +667,29 @@ void MainWindow::closeAndRemove(CommsPtr comms)
     }
 }
 
+void MainWindow::reOpenComms(CommsPtr comms)
+{
+    if (!comms) { return; }
+
+    if (auto s = qSharedPointerDynamicCast<SerialComms>(comms)) {
+
+        s->reOpen();
+
+    } else if (auto tcp = qSharedPointerDynamicCast<TcpServerComms>(comms)) {
+
+        tcp->restart();
+
+    } else if (auto tcp = qSharedPointerDynamicCast<TcpClientComms>(comms)) {
+
+        tcp->reConnect();
+
+    } else if (auto udp = qSharedPointerDynamicCast<UdpComms>(comms)) {
+
+        udp->restart();
+
+    }
+}
+
 void MainWindow::updateDroppedBytesCounterLabel()
 {
     ui->label_bytesDropped->setText(QString("%1").arg(numBytesDroppedFromDisplay));
@@ -902,6 +925,13 @@ void MainWindow::updateCounterLabels(CommsPtr comms)
     if (comms == mainComms) {
         ui->label_bytesRx->setText(QString::number(comms->rxByteCount()));
         ui->label_bytesTx->setText(QString::number(comms->txByteCount()));
+    }
+
+    // TODO create inverse map so .key() doesn't have to be used
+    QTreeWidgetItem* item = treeCommsMap.key(comms);
+    if (item) {
+        item->setText(1, QString::number(comms->rxByteCount()));
+        item->setText(2, QString::number(comms->txByteCount()));
     }
 }
 
@@ -1440,24 +1470,25 @@ void MainWindow::on_action_New_Connection_triggered()
 
 void MainWindow::on_action_Stop_TCP_Server_triggered()
 {
-    closeAndRemove(mainComms);
+    if (mainComms) { mainComms->close(); }
 }
 
 void MainWindow::on_action_Restart_TCP_Server_triggered()
 {
-    closeAndRemove(mainComms);
-    on_pushButton_tcpServer_start_clicked();
+    if (mainComms) {
+        mainComms->close();
+        reOpenComms(mainComms);
+    }
 }
 
 void MainWindow::on_action_Disconnect_from_TCP_Server_triggered()
 {
-    closeAndRemove(mainComms);
+    if (mainComms) { mainComms->close(); }
 }
 
 void MainWindow::on_action_Reconnect_to_TCP_Server_triggered()
 {
-    closeAndRemove(mainComms);
-    on_pushButton_tcpClient_connect_clicked();
+    reOpenComms(mainComms);
 }
 
 void MainWindow::on_pushButton_log_startStop_clicked()
@@ -1870,23 +1901,7 @@ void MainWindow::on_pushButton_forward_reOpen_clicked()
     CommsPtr c = treeCommsMap.value(item);
     if (!c) { return; }
 
-    if (auto s = qSharedPointerDynamicCast<SerialComms>(c)) {
-
-        s->reOpen();
-
-    } else if (auto tcp = qSharedPointerDynamicCast<TcpServerComms>(c)) {
-
-        tcp->restart();
-
-    } else if (auto tcp = qSharedPointerDynamicCast<TcpClientComms>(c)) {
-
-        tcp->reConnect();
-
-    } else if (auto udp = qSharedPointerDynamicCast<UdpComms>(c)) {
-
-        udp->restart();
-
-    }
+    reOpenComms(c);
 }
 
 void MainWindow::on_pushButton_forward_remove_clicked()

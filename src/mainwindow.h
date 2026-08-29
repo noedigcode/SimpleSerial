@@ -22,9 +22,7 @@
 #define MAINWINDOW_H
 
 #include "aboutdialog.h"
-#include "gidqt5serial.h"
-#include "gidtcp.h"
-#include "gidudp.h"
+#include "comms.h"
 #include "settings.h"
 #include "version.h"
 
@@ -44,391 +42,6 @@
 #include <QStyleFactory>
 #include <QTreeWidgetItem>
 
-class Comms : public QObject
-{
-    Q_OBJECT
-
-public:
-
-    Comms(QObject* parent) : QObject(parent)
-    {
-
-    }
-    void setTag(QString tag)
-    {
-        mTag = tag;
-    }
-    QString tag()
-    {
-        return mTag;
-    }
-    virtual QString type() = 0;
-    virtual QString titleText() = 0;
-    void send(const QByteArray& data)
-    {
-        mTxByteCount += data.length();
-        doSend(data);
-    }
-    virtual void close() = 0;
-    void onReceive(QByteArray data)
-    {
-        mRxByteCount += data.length();
-        emit dataReceived(data);
-    }
-    int rxByteCount()
-    {
-        return mRxByteCount;
-    }
-    int txByteCount()
-    {
-        return mTxByteCount;
-    }
-    void clearCounters()
-    {
-        mRxByteCount = 0;
-        mTxByteCount = 0;
-    }
-
-signals:
-    void print(QString msg);
-    void dataReceived(QByteArray data);
-    void opened();
-    void closed();
-    void errorOccurred(QString error);
-
-protected:
-    int mRxByteCount = 0;
-    int mTxByteCount = 0;
-    QString mTag;
-
-    virtual void doSend(const QByteArray& data) = 0;
-};
-typedef QSharedPointer<Comms> CommsPtr;
-
-// =============================================================================
-
-class SerialComms : public Comms
-{
-    Q_OBJECT
-
-public:
-    SerialComms(QObject* parent) : Comms(parent)
-    {
-        setupSerial();
-    }
-    QString type()
-    {
-        return "Serial Port";
-    }
-    QString titleText()
-    {
-        QString title;
-        if (serial.s.isOpen()) {
-            title = QString("%1 (%2)")
-                    .arg(serial.s.portName())
-                    .arg(serial.s.baudRate());
-        } else {
-            title = QString("%1 (Closed)")
-                    .arg(serial.s.portName());
-        }
-        return title;
-    }
-    void close() override
-    {
-        if (serial.s.isOpen()) {
-            serial.s.close();
-            emit print("Serial port closed.");
-            emit closed();
-        }
-    }
-    void setSettings(const QMap<QString, QString> &keyVals)
-    {
-        serial.setSettings(keyVals);
-    }
-    QMap<QString, QString> getSettings()
-    {
-        return serial.getSettings();
-    }
-    bool wasOpenBefore()
-    {
-        return mWasOpenBefore;
-    }
-    void reOpen()
-    {
-        serial.reOpen();
-    }
-    GidQt5Serial serial;
-private:
-    bool mWasOpenBefore = false;
-    void setupSerial()
-    {
-        connect(&(serial.s), &QSerialPort::readyRead,
-                this, &SerialComms::onSerialReadyRead);
-        connect(&(serial.s), &QSerialPort::errorOccurred,
-                this, &SerialComms::onSerialError);
-        connect(&serial, &GidQt5Serial::print,
-                this, &SerialComms::print);
-        connect(&serial, &GidQt5Serial::portOpened,
-                this, &SerialComms::onPortOpened);
-    }
-    void doSend(const QByteArray& data) override
-    {
-        serial.s.write(data);
-        mTxByteCount += data.length();
-    }
-
-private slots:
-    void onPortOpened()
-    {
-        mWasOpenBefore = true;
-        emit Comms::opened();
-    }
-    void onSerialReadyRead()
-    {
-        Comms::onReceive(serial.s.readAll());
-    }
-    void onSerialError(QSerialPort::SerialPortError error)
-    {
-        if (error == QSerialPort::NoError) { return; }
-        QString s = QVariant::fromValue(error).toString();
-        emit print("Serial port error: " + s);
-        emit Comms::errorOccurred(s);
-    }
-};
-typedef QSharedPointer<SerialComms> SerialCommsPtr;
-
-// =============================================================================
-
-class TcpServerComms : public Comms
-{
-    Q_OBJECT
-
-public:
-    TcpServerComms(QObject* parent) : Comms(parent)
-    {
-        setupTcp();
-    }
-    QString type()
-    {
-        return "TCP Server";
-    }
-    QString titleText()
-    {
-        QString title = QString("TCP Server (%1)")
-                .arg(mPort);
-        if (!tcp.isServerListening()) {
-            title += " (Closed)";
-        }
-        return title;
-    }
-    void close()
-    {
-        if (tcp.isServerListening()) {
-            tcp.stopTcpServer();
-            print("TCP server stopped.");
-            emit Comms::closed();
-        }
-    }
-    bool startTcpServer(quint16 port)
-    {
-        mPort = port;
-        bool ok = tcp.setupTcpServer(port);
-        if (ok) {
-            emit Comms::opened();
-        } else {
-            emit Comms::errorOccurred(tcp.errorString());
-        }
-        return ok;
-    }
-    bool restart()
-    {
-        return startTcpServer(mPort);
-    }
-
-protected:
-    GidTcp tcp;
-    quint16 mPort = 0;
-    void setupTcp()
-    {
-        connect(&tcp, &GidTcp::print, this, &Comms::print);
-        connect(&tcp, &GidTcp::dataReceived,
-                this, &TcpServerComms::onTcpDataReceived);
-    }
-    void doSend(const QByteArray &data)
-    {
-        tcp.sendMsgToAllClients(data);
-    }
-private slots:
-    void onTcpDataReceived(GidTcp::ConPtr /*con*/, QByteArray msg)
-    {
-        Comms::onReceive(msg);
-    }
-};
-typedef QSharedPointer<TcpServerComms> TcpServerCommsPtr;
-
-// =============================================================================
-
-class TcpClientComms : public Comms
-{
-    Q_OBJECT
-
-public:
-    TcpClientComms(QObject* parent) : Comms(parent)
-    {
-        setupTcp();
-    }
-    QString type()
-    {
-        return "TCP Client";
-    }
-    QString titleText()
-    {
-        QString title = QString("TCP Client (%1:%2)")
-                .arg(mIpAddress)
-                .arg(mPort);
-        if (!tcp.isConnectedToServer()) {
-            title += " (Closed)";
-        }
-        return title;
-    }
-    void close()
-    {
-        tcp.disconnectFromServer();
-    }
-    void connectToServer(QHostAddress address, quint16 port)
-    {
-        mIpAddress = address.toString();
-        mPort = port;
-        tcp.connectToServer(address, port);
-    }
-    void reConnect()
-    {
-        connectToServer(QHostAddress(mIpAddress), mPort);
-    }
-
-protected:
-    GidTcp tcp;
-    QString mIpAddress;
-    quint16 mPort = 0;
-    void setupTcp()
-    {
-        connect(&tcp, &GidTcp::print, this, &Comms::print);
-        connect(&tcp, &GidTcp::dataReceived,
-                this, &TcpClientComms::onTcpDataReceived);
-        connect(&tcp, &GidTcp::clientConnected,
-                this, &TcpClientComms::onTcpClientConnectedToServer);
-        connect(&tcp, &GidTcp::clientDisconnected,
-                this, &TcpClientComms::onTcpClientDisconnected);
-        connect(&tcp, &GidTcp::clientConnectionError,
-                this, &TcpClientComms::onTcpClientError);
-    }
-    void doSend(const QByteArray &data)
-    {
-        tcp.sendMsg(data);
-    }
-private slots:
-    void onTcpDataReceived(GidTcp::ConPtr /*con*/, QByteArray data)
-    {
-        Comms::onReceive(data);
-    }
-    void onTcpClientConnectedToServer()
-    {
-        print("Connected to TCP server.");
-        emit Comms::opened();
-    }
-    void onTcpClientError(QString errorString)
-    {
-        print("TCP client error: " + errorString);
-        emit Comms::errorOccurred(errorString);
-    }
-    void onTcpClientDisconnected()
-    {
-        print("Disconnected from TCP server.");
-        emit Comms::closed();
-    }
-};
-typedef QSharedPointer<TcpClientComms> TcpClientCommsPtr;
-
-// =============================================================================
-
-class UdpComms : public Comms
-{
-    Q_OBJECT
-
-public:
-    UdpComms(QObject* parent) : Comms(parent)
-    {
-        setupUdp();
-    }
-    QString type()
-    {
-        return "UDP";
-    }
-    QString titleText()
-    {
-        QString title = "UDP";
-        if (mListen) {
-            title += QString(" (%1)").arg(mListenPort);
-        }
-        return title;
-    }
-    void close()
-    {
-        udp.stopUdp();
-        emit Comms::closed();
-    }
-    void start(bool listen, quint16 listenPort, bool broadcast, QString sendIp,
-               quint16 sendPort)
-    {
-        mUdpSendBroadcast = broadcast;
-        mUdpSendIp = sendIp;
-        mUdpSendPort = sendPort;
-        mListen = listen;
-        mListenPort = listenPort;
-        if (listen) {
-            udp.setupUdp(listenPort);
-        }
-    }
-    void restart()
-    {
-        start(mListen, mListenPort, mUdpSendBroadcast, mUdpSendIp, mUdpSendPort);
-    }
-
-protected:
-    GidUdp udp;
-    bool mListen = false;
-    int mListenPort = 0;
-    int mUdpSendPort = 0;
-    bool mUdpSendBroadcast = false;
-    QString mUdpSendIp;
-
-    void setupUdp()
-    {
-        connect(&udp, &GidUdp::print, this, &Comms::print);
-        connect(&udp, &GidUdp::rxMessage, this, &UdpComms::onUdpDataReceived);
-    }
-
-    void doSend(const QByteArray &data)
-    {
-        QHostAddress a;
-        if (mUdpSendBroadcast) {
-            a = QHostAddress::Broadcast;
-        } else {
-            a = QHostAddress(mUdpSendIp);
-        }
-
-        udp.sendMessage(data, a, mUdpSendPort);
-    }
-private slots:
-    void onUdpDataReceived(QByteArray msg, QHostAddress /*address*/,
-                           quint16 /*port*/)
-    {
-        Comms::onReceive(msg);
-    }
-};
-typedef QSharedPointer<UdpComms> UdpCommsPtr;
-
-// =============================================================================
 
 namespace Ui {
 class MainWindow;
@@ -539,6 +152,7 @@ private:
     QList<CommsPtr> allComms;
     void addComms(CommsPtr comms);
     void closeAndRemove(CommsPtr comms);
+    void reOpenComms(CommsPtr comms);
 
     QMap<QTreeWidgetItem*, CommsPtr> treeCommsMap;
 
@@ -597,6 +211,17 @@ private slots:
     void on_pushButton_macros_addMultiple_clicked();
     void on_listWidget_macros_itemDoubleClicked(QListWidgetItem *item);
     void on_comboBox_macros_append_currentIndexChanged(int index);
+
+    // Timed messages
+private:
+    QBasicTimer timedMsgTimer;
+    void onTimedMsgTimer();
+
+    // File sending
+private:
+    QBasicTimer sendFileTimer;
+    void onSendFileTimer();
+    void timerEvent(QTimerEvent *ev);
 
 private slots:
     void onConsoleZoomChanged();
@@ -664,23 +289,14 @@ private slots:
 
     void on_checkBox_showDuck_toggled(bool checked);
 
-    void on_pushButton_forward_add_clicked();
-
     void on_pushButton_startupCancel_clicked();
 
+    void on_pushButton_forward_add_clicked();
     void on_pushButton_forward_close_clicked();
-
     void on_pushButton_forward_reOpen_clicked();
-
     void on_pushButton_forward_remove_clicked();
 
 private:
-    QBasicTimer timedMsgTimer;
-    void onTimedMsgTimer();
-    QBasicTimer sendFileTimer;
-    void onSendFileTimer();
-    void timerEvent(QTimerEvent *ev);
-
     void closeEvent(QCloseEvent *event);
     bool eventFilter(QObject *watched, QEvent *event);
 

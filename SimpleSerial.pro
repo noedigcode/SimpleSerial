@@ -28,6 +28,7 @@ include(src/gidqt5serial/gidqt5serial.pri)
 INCLUDEPATH += src
 
 SOURCES += \
+    src/comms.cpp \
     src/main.cpp\
     src/Utilities.cpp \
     src/aboutdialog.cpp \
@@ -38,6 +39,7 @@ SOURCES += \
     src/settings.cpp
 
 HEADERS  += \
+    src/comms.h \
     src/mainwindow.h \
     src/Utilities.h \
     src/aboutdialog.h \
