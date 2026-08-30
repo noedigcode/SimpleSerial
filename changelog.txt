@@ -6,6 +6,7 @@ Changelog
 
 Added
 
+- Adding additional connections and forwarding data between all connections.
 - Qt6 support. This improves support for screens with differing DPIs.
 - Set GUI style from menu or command line.
 
