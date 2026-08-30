@@ -1260,9 +1260,20 @@
           </widget>
           <widget class="QWidget" name="tab_2">
            <attribute name="title">
-            <string>Forward</string>
+            <string>Forwarding</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout_20">
+            <item>
+             <widget class="QLabel" name="label_34">
+              <property name="text">
+               <string>Data received from any connection is forwarded to all other connections.
+Data sent from this app is sent to all connections.</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_22">
               <item>
