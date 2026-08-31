@@ -113,7 +113,6 @@ void SerialComms::setupSerial()
 void SerialComms::doSend(const QByteArray &data)
 {
     serial.s.write(data);
-    mTxByteCount += data.length();
 }
 
 void SerialComms::onPortOpened()
