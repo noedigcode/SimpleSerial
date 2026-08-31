@@ -9,6 +9,7 @@ Added
 - Adding additional connections and forwarding data between all connections.
 - Qt6 support. This improves support for screens with differing DPIs.
 - Set GUI style from menu or command line.
+- Highlight new ports in serial connect dialog when refreshing.
 
 
 [1.5.2] - August 2026
@@ -36,7 +37,6 @@ Changes
 - Add Set DTR Pin and Close Serial Port buttons to toolbar.
 - Shorten some toolbar button text.
 - Reduce toolbar icon size and place text below icons.
-
 
 
 [1.5.0] - July 2026
