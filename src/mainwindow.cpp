@@ -732,7 +732,18 @@ void MainWindow::onCommsChangeWindowTitle(CommsPtr comms)
 {
     QTreeWidgetItem* item = treeCommsMap.key(comms);
     if (item) {
-        item->setText(0, comms->titleText());
+        QString text = comms->titleText();
+        // Prepend tag if set
+        QString tag = comms->tag();
+        if (!tag.isEmpty()) {
+            text = QString("%1 - %2").arg(tag, text);
+        }
+        // Append error if any
+        QString e = comms->errorString();
+        if (!e.isEmpty()) {
+            text = QString("%1 (Error: %2)").arg(text, e);
+        }
+        item->setText(0, text);
     }
 
     if (comms == mainComms) {

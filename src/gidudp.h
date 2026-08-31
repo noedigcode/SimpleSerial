@@ -31,6 +31,7 @@ public:
     explicit GidUdp(QObject *parent = 0);
     bool setupUdp(int port);
     void stopUdp();
+    QString errorString();
 
 private:
     QUdpSocket udpSocket;

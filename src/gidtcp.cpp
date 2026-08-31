@@ -133,11 +133,15 @@ QString GidTcp::ipString(QHostAddress a)
 
 QString GidTcp::errorString()
 {
+    QString ret;
     if (client) {
-        return client->socket->errorString();
+        if (client->socket->error() != QTcpSocket::UnknownSocketError) {
+            ret = client->socket->errorString();
+        }
     } else {
-        return tcpServer.errorString();
+        ret = tcpServer.errorString();
     }
+    return ret;
 }
 
 void GidTcp::onServerNewTcpConnection()

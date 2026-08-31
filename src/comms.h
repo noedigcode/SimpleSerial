@@ -16,6 +16,7 @@ public:
     QString tag();
     virtual QString type() = 0;
     virtual QString titleText() = 0;
+    virtual QString errorString() = 0;
     void send(const QByteArray& data);
     virtual void close() = 0;
     void onReceive(QByteArray data);
@@ -48,6 +49,7 @@ public:
     SerialComms(QObject* parent);
     QString type();
     QString titleText();
+    QString errorString();
     void close() override;
     void setSettings(const QMap<QString, QString> &keyVals);
     QMap<QString, QString> getSettings();
@@ -76,6 +78,7 @@ public:
     TcpServerComms(QObject* parent);
     QString type();
     QString titleText();
+    QString errorString();
     void close();
     bool startTcpServer(quint16 port);
     bool restart();
@@ -99,6 +102,7 @@ public:
     TcpClientComms(QObject* parent);
     QString type();
     QString titleText();
+    QString errorString();
     void close();
     void connectToServer(QHostAddress address, quint16 port);
     void reConnect();
@@ -126,6 +130,7 @@ public:
     UdpComms(QObject* parent);
     QString type();
     QString titleText();
+    QString errorString();
     void close();
     void start(bool listen, quint16 listenPort, bool broadcast, QString sendIp,
                quint16 sendPort);

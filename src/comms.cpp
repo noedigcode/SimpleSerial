@@ -69,6 +69,15 @@ QString SerialComms::titleText()
     return title;
 }
 
+QString SerialComms::errorString()
+{
+    QString ret;
+    if (serial.s.error() != QSerialPort::NoError) {
+        ret = serial.s.errorString();
+    }
+    return ret;
+}
+
 void SerialComms::close()
 {
     if (serial.s.isOpen()) {
@@ -154,6 +163,11 @@ QString TcpServerComms::titleText()
     return title;
 }
 
+QString TcpServerComms::errorString()
+{
+    return tcp.errorString();
+}
+
 void TcpServerComms::close()
 {
     if (tcp.isServerListening()) {
@@ -218,10 +232,16 @@ QString TcpClientComms::titleText()
     return title;
 }
 
+QString TcpClientComms::errorString()
+{
+    return tcp.errorString();
+}
+
 void TcpClientComms::close()
 {
     tcp.disconnectFromServer();
     print("Disconnected from TCP server.");
+    emit Comms::closed();
 }
 
 void TcpClientComms::connectToServer(QHostAddress address, quint16 port)
@@ -294,6 +314,11 @@ QString UdpComms::titleText()
         title += QString(" (%1)").arg(mListenPort);
     }
     return title;
+}
+
+QString UdpComms::errorString()
+{
+    return udp.errorString();
 }
 
 void UdpComms::close()

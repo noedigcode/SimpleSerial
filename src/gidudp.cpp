@@ -49,6 +49,15 @@ void GidUdp::stopUdp()
     udpSocket.disconnectFromHost();
 }
 
+QString GidUdp::errorString()
+{
+    QString ret;
+    if (udpSocket.error() != QUdpSocket::UnknownSocketError) {
+        ret = udpSocket.errorString();
+    }
+    return ret;
+}
+
 void GidUdp::udpSocketReadyRead()
 {
     while (udpSocket.hasPendingDatagrams()) {
