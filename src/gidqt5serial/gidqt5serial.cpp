@@ -136,6 +136,10 @@ void GidQt5Serial::openSerialPort()
 
 void GidQt5Serial::refreshSerialPortList()
 {
+    QStringList previousPorts;
+    for (int i = 0; i < ui->listWidget_Ports->count(); i++) {
+        previousPorts.append(ui->listWidget_Ports->item(i)->text());
+    }
     ui->listWidget_Ports->clear();
 
     serialPortList = QSerialPortInfo::availablePorts();
@@ -150,7 +154,17 @@ void GidQt5Serial::refreshSerialPortList()
             name.append(" (busy)");
         }
         #endif
-        ui->listWidget_Ports->addItem(name);
+
+        QListWidgetItem* item = new QListWidgetItem();
+        item->setText(name);
+        if (!previousPorts.contains(name)) {
+            // Highlight item if new
+            item->setBackground(QBrush(Qt::yellow));
+            // Add to start of list
+            ui->listWidget_Ports->insertItem(0, item);
+        } else {
+            ui->listWidget_Ports->addItem(item);
+        }
     }
 }
 
