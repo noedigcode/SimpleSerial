@@ -859,7 +859,7 @@ void MainWindow::onCommsPrint(CommsPtr comms, QString msg)
             .arg(tag.isEmpty() ? "" : " - ")
             .arg(tag)
             .arg(msg);
-    print(text, systemTextColor());
+    printOnNewLine(text, systemTextColor());
 }
 
 SerialCommsPtr MainWindow::createSerialComms()
@@ -1452,7 +1452,7 @@ void MainWindow::on_pushButton_udp_start_clicked()
 
     udp->start(listen, listenPort, broadcast, ip, sendPort);
 
-    print("UDP mode initialised", systemTextColor());
+    printOnNewLine("UDP mode initialised", systemTextColor());
     updateWindowTitle();
 
     showMainPage();
