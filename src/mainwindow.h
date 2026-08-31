@@ -296,6 +296,8 @@ private slots:
     void on_pushButton_forward_reOpen_clicked();
     void on_pushButton_forward_remove_clicked();
 
+    void on_pushButton_forward_setTag_clicked();
+
 private:
     void closeEvent(QCloseEvent *event);
     bool eventFilter(QObject *watched, QEvent *event);

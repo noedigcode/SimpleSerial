@@ -55,7 +55,8 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
     setWidgetsEnabledOnItemSelected(ui->treeWidget_forward,
                                     {ui->pushButton_forward_close,
                                      ui->pushButton_forward_remove,
-                                     ui->pushButton_forward_reOpen});
+                                     ui->pushButton_forward_reOpen,
+                                     ui->pushButton_forward_setTag});
 
     setWidgetsEnabledOnItemSelected(ui->listWidget_macros,
                                     {ui->pushButton_macros_edit,
@@ -1924,5 +1925,24 @@ void MainWindow::on_pushButton_forward_remove_clicked()
     if (!c) { return; }
 
     closeAndRemove(c);
+}
+
+void MainWindow::on_pushButton_forward_setTag_clicked()
+{
+    QTreeWidgetItem* item = ui->treeWidget_forward->currentItem();
+    if (!item) { return; }
+
+    CommsPtr c = treeCommsMap.value(item);
+    if (!c) { return; }
+
+    bool ok;
+    QString text = QInputDialog::getText(this, "Set Connection Tag",
+                                         "Tag to associate with this connection",
+                                         QLineEdit::Normal,
+                                         c->tag(),
+                                         &ok);
+    if (!ok) { return; }
+    c->setTag(text);
+    onCommsChangeWindowTitle(c);
 }
 
