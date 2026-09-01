@@ -142,15 +142,14 @@ void GidQt5Serial::refreshSerialPortList()
     }
     ui->listWidget_Ports->clear();
 
-    serialPortList = QSerialPortInfo::availablePorts();
-    for (int i=0; i<serialPortList.count(); i++) {
-        QString name = serialPortList[i].portName();
+    for (const QSerialPortInfo& s : QSerialPortInfo::availablePorts()) {
+        QString name = s.portName();
 
         #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         // NOTE: Qt6 removed isBusy(). This could be done manually by trying to
         // open each port. For now it is not done.
         #else
-        if (serialPortList[i].isBusy()) {
+        if (s.isBusy()) {
             name.append(" (busy)");
         }
         #endif
@@ -160,6 +159,7 @@ void GidQt5Serial::refreshSerialPortList()
         if (!previousPorts.contains(name)) {
             // Highlight item if new
             item->setBackground(QBrush(Qt::yellow));
+            item->setForeground(QBrush(Qt::black));
             // Add to start of list
             ui->listWidget_Ports->insertItem(0, item);
         } else {
@@ -273,8 +273,7 @@ void GidQt5Serial::on_listWidget_Ports_itemDoubleClicked(QListWidgetItem* /*item
 
 void GidQt5Serial::on_listWidget_Ports_itemClicked(QListWidgetItem *item)
 {
-    ui->lineEdit_PortName->setText(
-                serialPortList.value(ui->listWidget_Ports->row(item)).portName());
+    ui->lineEdit_PortName->setText(item->text());
 }
 
 void GidQt5Serial::on_lineEdit_PortName_returnPressed()

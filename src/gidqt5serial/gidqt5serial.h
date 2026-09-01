@@ -66,7 +66,6 @@ private:
     void closeEvent(QCloseEvent *event);
     void showEvent(QShowEvent *event);
 
-    QList<QSerialPortInfo> serialPortList;
     QList<QSerialPort::Parity> parityComboBoxList;
     QList<QSerialPort::StopBits> stopBitsComboBoxList;
 
