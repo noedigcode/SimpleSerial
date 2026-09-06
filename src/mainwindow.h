@@ -70,7 +70,6 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QString mAutoReplyBuffer;
 
     SimpleSerialSettings settings;
     void loadGeneralSettings();
@@ -223,12 +222,30 @@ private:
     void onSendFileTimer();
     void timerEvent(QTimerEvent *ev);
 
+    // Auto reply
+private:
+    QString mAutoReplyBuffer;
+private slots:
+    void on_checkBox_AutoReply_Enable_clicked();
+
+    // Fonts
+private:
+    void setupFonts();
+    void setFont(QFont font);
+    void showOnlyMonospaceFonts(bool monoOnly);
+    QFont builtInFont;
+    bool builtInFontValid = false;
+private slots:
+    void on_checkBox_onlyMonospaceFonts_toggled(bool checked);
+    void on_pushButton_builtInFont_clicked();
+    void on_pushButton_systemDefaultMonospaceFont_clicked();
+    void on_fontComboBox_currentFontChanged(const QFont &f);
+
 private slots:
     void onConsoleZoomChanged();
     // GUI widget slots
     void on_pushButton_Send_clicked();
     void on_checkBox_TimedMessages_Enable_clicked();
-    void on_checkBox_AutoReply_Enable_clicked();
     void on_actionScroll_to_Bottom_triggered();
     void on_actionClear_triggered();
 

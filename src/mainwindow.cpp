@@ -35,6 +35,8 @@ MainWindow::MainWindow(StartupOptions options, QWidget *parent) :
 {
     ui->setupUi(this);
 
+    setupFonts();
+
     ui->spinBox_maxProcessTimeMs->setValue(dataDisplay.allowedMs);
     ui->spinBox_displayBacklogLengthMs->setValue(dataDisplay.displayBacklogLengthMs);
 
@@ -1099,6 +1101,50 @@ void MainWindow::on_checkBox_AutoReply_Enable_clicked()
     mAutoReplyBuffer.clear();
 }
 
+void MainWindow::setupFonts()
+{
+    // Load internal font
+    QString filename = "://JetBrainsMono/JetBrainsMonoNL-Regular.ttf";
+    int fontId = QFontDatabase::addApplicationFont(filename);
+    if (fontId == -1) {
+        qWarning() << "Failed to load built-in font" << filename;
+        builtInFontValid = false;
+    } else {
+        builtInFont = QFont(QFontDatabase::applicationFontFamilies(fontId).value(0));
+        builtInFontValid = true;
+    }
+
+    // Apply font. First try settings, then internal, then system monospace.
+    if (settings.consoleFont->isSet()) {
+        setFont(QFont(settings.consoleFont->getOrDefault().toString()));
+    } else if (builtInFontValid) {
+        setFont(builtInFont);
+    } else {
+        setFont(Utilities::getMonospaceFont());
+    }
+
+    showOnlyMonospaceFonts(true);
+}
+
+void MainWindow::setFont(QFont font)
+{
+    font.setPointSize(ui->console->getFontPointSize());
+    ui->console->setFont(font);
+    ui->fontComboBox->setCurrentFont(font);
+    settings.consoleFont->set(font.family());
+}
+
+void MainWindow::showOnlyMonospaceFonts(bool monoOnly)
+{
+    if (monoOnly) {
+        ui->fontComboBox->setFontFilters(QFontComboBox::MonospacedFonts);
+    } else {
+        ui->fontComboBox->setFontFilters(QFontComboBox::AllFonts);
+    }
+
+    ui->checkBox_onlyMonospaceFonts->setChecked(monoOnly);
+}
+
 void MainWindow::on_actionScroll_to_Bottom_triggered()
 {
     ui->console->scrollToBottom();
@@ -1944,5 +1990,25 @@ void MainWindow::on_pushButton_forward_setTag_clicked()
     if (!ok) { return; }
     c->setTag(text);
     onCommsChangeWindowTitle(c);
+}
+
+void MainWindow::on_checkBox_onlyMonospaceFonts_toggled(bool checked)
+{
+    showOnlyMonospaceFonts(checked);
+}
+
+void MainWindow::on_pushButton_builtInFont_clicked()
+{
+    setFont(builtInFont);
+}
+
+void MainWindow::on_pushButton_systemDefaultMonospaceFont_clicked()
+{
+    setFont(Utilities::getMonospaceFont());
+}
+
+void MainWindow::on_fontComboBox_currentFontChanged(const QFont &f)
+{
+    setFont(f);
 }
 

@@ -94,6 +94,7 @@ public:
     SettingPtr macroValue                   = newSetting("macroValue");
     SettingPtr consoleFontPointSize         = newSetting("consoleFontPointSize");
     SettingPtr guiStyle                     = newSetting("guistyle");
+    SettingPtr consoleFont                  = newSetting("consoleFont");
 };
 
 #endif // SETTINGS_H

@@ -60,5 +60,6 @@ DISTFILES += \
     README.md
 
 RESOURCES += \
+    fonts/fonts.qrc \
     icons/icons.qrc \
     src/text.qrc

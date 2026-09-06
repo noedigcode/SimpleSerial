@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>JetBrainsMono/JetBrainsMonoNL-Regular.ttf</file>
+    </qresource>
+</RCC>
